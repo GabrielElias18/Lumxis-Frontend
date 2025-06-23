@@ -1,0 +1,156 @@
+/* tablaventas.css */
+.tabla-container {
+  background: white;
+  border-radius: 1rem;
+  overflow: hidden;
+  margin: 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 1400px;
+  width: 100%;
+}
+
+.tabla-container h3 {
+  padding: 1.25rem;
+  margin: 0;
+  font-size: 1.5rem;
+  color: #111827;
+  font-weight: 600;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.tabla-productos {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.tabla-productos th {
+  background: #f9fafb;
+  color: #4b5563;
+  font-weight: 600;
+  text-align: left;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 1.03rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tabla-productos td {
+  padding: 1rem 1.25rem;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 1.05rem;
+}
+
+.tabla-productos tr:hover {
+  background-color: #f8fafc;
+}
+
+/* Numeric values alignment */
+.tabla-productos td:nth-child(4),
+.tabla-productos td:nth-child(5) {
+  text-align: right;
+  font-weight: 500;
+}
+
+/* Action Buttons */
+.editar-venta,
+.eliminar-venta {
+  padding: 0.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  margin: 0 0.25rem;
+  transition: all 0.2s ease-in-out;
+  background: transparent;
+  font-size: 1.01rem;
+}
+
+.editar-venta {
+  color: #3b82f6;
+}
+
+.editar-venta:hover {
+  background: #eff6ff;
+}
+
+.eliminar-venta {
+  color: #ef4444;
+}
+
+.eliminar-venta:hover {
+  background: #fef2f2;
+}
+
+/* Pagination */
+.paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.paginacion button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background: white;
+  color: #4b5563;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.paginacion button:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.paginacion button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.paginacion span {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .tabla-container {
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .tabla-container {
+    overflow-x: auto;
+  }
+  
+  .tabla-productos {
+    min-width: 700px;
+  }
+}
+
+@media (max-width: 640px) {
+  .tabla-container h3 {
+    padding: 1rem;
+  }
+  
+  .paginacion {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+  
+  .paginacion span {
+    width: 100%;
+    text-align: center;
+    order: -1;
+  }
+}

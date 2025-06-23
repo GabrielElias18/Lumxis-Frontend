@@ -1,0 +1,143 @@
+/* Estilos generales */
+.contenedor-usuarios {
+    width: 100%;
+    min-height: 100vh;
+    background: #f4f4f4;
+    padding: 20px;
+  }
+  
+  /* Barra de búsqueda y botón */
+  .barra-superior {
+    display: flex;
+    justify-content: space-between;
+    max-width: 800px;
+    margin: 0 auto 20px;
+  }
+  
+  .input-busqueda {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+  }
+  
+  .boton-crear {
+    padding: 10px 15px;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  
+  .titulo-seccion {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 22px;
+    color: #333;
+  }
+  
+  /* Lista de usuarios */
+  .lista-usuarios {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  .tarjeta-usuario {
+    display: flex;
+    align-items: center;
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
+  }
+  
+  .avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 15px;
+  }
+  
+  .info-usuario {
+    flex: 1;
+  }
+  
+  .rol {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-top: 5px;
+  }
+  
+  .admin {
+    background: #ff9800;
+    color: white;
+  }
+  
+  .usuario {
+    background: #03a9f4;
+    color: white;
+  }
+  
+  /* Botones */
+  .acciones {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .boton-editar,
+  .boton-eliminar {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  
+  .boton-editar {
+    background: #ffc107;
+  }
+  
+  .boton-eliminar {
+    background: #dc3545;
+    color: white;
+  }
+  
+  /* Modal */
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .modal-contenido {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+  }
+  
+  .modal-acciones {
+    margin-top: 10px;
+  }
+  
+  .boton-guardar {
+    background: #28a745;
+    padding: 10px;
+  }
+  
+  .boton-cancelar {
+    background: #dc3545;
+    padding: 10px;
+  }
+  

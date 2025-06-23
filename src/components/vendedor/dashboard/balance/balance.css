@@ -1,0 +1,270 @@
+/* balance.css */
+.balance-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex; /* Usa flexbox para centrar el contenido */
+  flex-direction: column;
+  align-items: center;
+  background-color: #F0F4FA; /* Fondo claro */
+  min-height: 100vh; /* Asegura que ocupe toda la pantalla */
+  padding: 1.5rem;
+  border-radius: 5px;
+}
+
+/* Top Action Buttons */
+.top-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  width: 100%;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.action-button-income {
+  background-color: #10b981;
+}
+
+.action-button-income:hover {
+  background-color: #059669;
+}
+
+.action-button-expense {
+  background-color: #ef4444;
+}
+
+.action-button-expense:hover {
+  background-color: #dc2626;
+}
+
+.button-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Igual tamaño para las cards */
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  width: 100%;
+}
+
+.metric-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  transition: transform 0.3s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+}
+
+.total-balance {
+  background: white;
+}
+.filters-container {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px 0;
+}
+
+.filter-input {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  width: 48%;
+  font-size: 14px;
+}
+
+.metric-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 1rem;
+  font-size: 1.5rem;
+}
+
+.total-balance .metric-icon {
+  background-color: #3b82f6;
+  color: white;
+  width: 60px;
+  height: 60px;
+  font-size: 1.5rem;
+}
+
+.income .metric-icon {
+  background-color: #10b981;
+  color: white;
+}
+
+.expense .metric-icon {
+  background-color: #ef4444;
+  color: white;
+}
+
+.metric-content {
+  flex: 1;
+}
+
+.metric-content h3 {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0 0 0.5rem 0;
+  font-weight: 500;
+}
+
+.metric-value {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0;
+  color: #111827;
+}
+
+/* Tab Controls */
+.tab-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 0.5rem;
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 500px;
+}
+
+.tab-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tab-button.active {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.tab-button:hover:not(.active) {
+  background: #f9fafb;
+  color: #374151;
+}
+
+/* Table Styles */
+.table-container, .table {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  background: white;
+  padding: 1.5rem;
+  overflow-x: auto;
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.table th, .table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.table th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.table tr:hover {
+  background-color: #f1f5f9;
+}
+
+/* Responsive Design */
+@media (max-width: 1280px) {
+  .metrics-grid {
+    gap: 1.25rem;
+  }
+  
+  .metric-card {
+    padding: 1.25rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .balance-container {
+    padding: 1.25rem;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .total-balance {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .action-button {
+    padding: 0.625rem 1.25rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .balance-container {
+    padding: 1rem;
+  }
+  
+  .top-actions {
+    flex-direction: column;
+  }
+  
+  .action-button {
+    width: 100%;
+  }
+}

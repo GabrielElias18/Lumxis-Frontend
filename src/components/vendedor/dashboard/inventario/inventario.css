@@ -1,0 +1,215 @@
+/* Contenedor principal del inventario */
+.inventario-main {
+  display: flex; /* Usa flexbox para centrar el contenido */
+  flex-direction: column;
+  align-items: center;
+  background-color: #F0F4FA; /* Fondo claro */
+  min-height: 100vh; /* Asegura que ocupe toda la pantalla */
+  padding: 1.5rem;
+  border-radius: 5px;
+}
+
+/* Contenedor superior con botones y filtros */
+.inventario-top {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1400px;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+  flex-wrap: wrap; /* Permite que los elementos se acomoden en pantallas pequeñas */
+}
+
+/* Agrupa los botones a la izquierda */
+.inventario-buttons-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Agrupa los filtros a la derecha */
+.inventario-filters-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Estilos generales para botones */
+.inventario-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+/* Botón primario con color azul */
+.inventario-btn-primary {
+  background-color: #1565C0; /* Azul principal */
+  color: white;
+}
+
+.inventario-btn-primary:hover {
+  background-color: #0D47A1; /* Azul oscuro */
+}
+
+/* Botón secundario con color gris oscuro */
+.inventario-btn-secondary {
+  background-color: #2C2C2C; /* Gris oscuro */
+  color: white;
+}
+
+.inventario-btn-secondary:hover {
+  background-color: #1A1A1A; /* Gris más oscuro */
+}
+
+/* Estilo para los selects */
+.inventario-select {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #E0E0E0; /* Gris claro */
+  background-color: white;
+  min-width: 200px;
+  font-size: 0.95rem;
+}
+
+/* Barra de búsqueda con posición fija */
+.inventario-search-sticky {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  max-width: 1400px;
+  padding: 1rem 0;
+  background-color: #F0F4FA; /* Fondo claro */
+  z-index: 10;
+}
+
+/* Input de búsqueda */
+.inventario-search-input {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 2px solid #E0E0E0; /* Gris claro */
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.inventario-search-input:focus {
+  outline: none;
+  border-color: #1565C0; /* Azul principal */
+}
+
+/* Contenedor de productos centrado */
+.inventario-products {
+  display: flex; /* Usa flexbox */
+  flex-wrap: wrap; /* Permite que los productos se acomoden en varias líneas */
+  justify-content: center; /* Centra los productos horizontalmente */
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 1400px;
+  margin: 1.5rem auto;
+}
+
+/* Tarjetas de producto */
+.producto-card {
+  background-color: white;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Centra el contenido dentro de la tarjeta */
+  text-align: center;
+  width: 250px; /* Tamaño fijo de las tarjetas */
+}
+
+.producto-card:hover {
+  transform: translateY(-4px);
+}
+
+/* Imágenes dentro de las tarjetas */
+.producto-card img {
+  max-width: 100%;
+  height: auto;
+  margin-bottom: 1rem;
+}
+
+/* Ajustes responsivos para móviles */
+@media (max-width: 576px) {
+  .producto-card {
+    width: 100%;
+  }
+  .inventario-top {
+    flex-direction: column;
+    align-items: center;
+  }
+  .inventario-buttons-left, .inventario-filters-right {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Ajustes para tablets */
+@media (min-width: 577px) and (max-width: 767px) {
+  .producto-card {
+    width: calc(50% - 1.5rem); /* Muestra 2 productos por fila */
+  }
+}
+
+/* Ajustes para pantallas medianas */
+@media (min-width: 768px) and (max-width: 991px) {
+  .producto-card {
+    width: calc(33.333% - 1.5rem); /* Muestra 3 productos por fila */
+  }
+}
+
+/* Ajustes para pantallas grandes */
+@media (min-width: 992px) {
+  .producto-card {
+    width: 250px;
+  }
+}
+
+/* Estilos de paginación */
+.paginacion {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.paginacion-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #E0E0E0; /* Borde gris */
+  border-radius: 0.5rem;
+  background-color: white;
+  color: #1565C0; /* Azul principal para los botones no seleccionados */
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.paginacion-btn:hover {
+  background-color: #1565C0;
+  color: white;
+}
+
+.paginacion-btn.activo {
+  background-color: #1565C0; /* Azul para la página seleccionada */
+  color: white;
+  font-weight: bold;
+}
+
+.paginacion-btn:disabled {
+  background-color: #E0E0E0; /* Gris claro para botones deshabilitados */
+  color: #9E9E9E; /* Gris para texto deshabilitado */
+  cursor: not-allowed;
+}

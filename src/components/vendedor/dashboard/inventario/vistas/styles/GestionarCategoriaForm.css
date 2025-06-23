@@ -1,0 +1,233 @@
+/* Modal Base */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1.5rem;
+  backdrop-filter: blur(4px);
+}
+
+.popup {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 600px;
+  position: relative;
+  padding: 2rem;
+}
+
+/* Header */
+.popup h2 {
+  color: #1a1a1a;
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+/* Form Groups */
+.form-group {
+  margin-bottom: 1.75rem;
+}
+
+.form-group label {
+  display: block;
+  color: #4a4a4a;
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+}
+
+/* Select Styling */
+select {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 1rem;
+  color: #333;
+  background: #fff;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.25rem;
+  padding-right: 2.5rem;
+  transition: all 0.2s ease;
+}
+
+select:focus {
+  border-color: #2196f3;
+  box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.1);
+  outline: none;
+}
+
+select:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Category Details */
+.categoria-detalles {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.detalle {
+  margin-bottom: 1.25rem;
+}
+
+.detalle:last-child {
+  margin-bottom: 0;
+}
+
+.detalle strong {
+  display: block;
+  color: #4a4a4a;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.detalle input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 1rem;
+  color: #333;
+  background: #fff;
+  transition: all 0.2s ease;
+}
+
+.detalle input:focus {
+  border-color: #2196f3;
+  box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.1);
+  outline: none;
+}
+
+/* Buttons */
+.form-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+.form-buttons button {
+  padding: 0.875rem 1.5rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+}
+
+/* Save Button */
+.guardar-button {
+  background: #2196f3;
+  color: white;
+  border: none;
+}
+
+.guardar-button:hover {
+  background: #1976d2;
+  transform: translateY(-1px);
+}
+
+.guardar-button:active {
+  transform: translateY(0);
+}
+
+/* Delete Button */
+.eliminar-button {
+  background: white;
+  color: #dc3545;
+  border: 1.5px solid #dc3545;
+}
+
+.eliminar-button:hover {
+  background: #dc3545;
+  color: white;
+}
+
+/* Close Button */
+button:last-child {
+  background: white;
+  color: #666;
+  border: 1.5px solid #e0e0e0;
+}
+
+button:last-child:hover {
+  background: #f5f5f5;
+  border-color: #d0d0d0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .overlay {
+    padding: 1rem;
+  }
+
+  .popup {
+    padding: 1.5rem;
+    margin: 1rem;
+    border-radius: 12px;
+  }
+
+  .form-buttons {
+    flex-direction: column;
+  }
+
+  .form-buttons button {
+    width: 100%;
+  }
+}
+
+/* Loading State */
+button.loading {
+  position: relative;
+  color: transparent;
+}
+
+button.loading::after {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  top: 50%;
+  left: 50%;
+  margin: -10px 0 0 -10px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 0.8s infinite linear;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Validation States */
+.detalle input:invalid {
+  border-color: #f44336;
+}
+
+.detalle input:invalid:focus {
+  box-shadow: 0 0 0 4px rgba(244, 67, 54, 0.1);
+}

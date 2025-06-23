@@ -1,0 +1,86 @@
+.fondo-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ventana-flotante {
+  background: white;
+  padding: 20px;
+  width: 400px;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.cerrar-modal {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.cerrar-modal:hover {
+  background-color: red;
+}
+
+.titulo {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.label {
+  font-weight: bold;
+  display: block;
+  margin: 10px 0 5px;
+}
+
+.select, .input, .textarea {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.textarea {
+  height: 80px;
+  resize: none;
+}
+
+.botones-formulario {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.boton, .boton-cerrar {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.boton {
+  background: #28a745;
+  color: white;
+}
+
+.boton-cerrar {
+  background: #dc3545;
+  color: white;
+}
+
+.error {
+  color: red;
+  font-size: 12px;
+}
