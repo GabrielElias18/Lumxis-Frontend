@@ -6,7 +6,7 @@ import TablaIngresos from "./vistas/TablaIngresos";
 import TablaEgresos from "./vistas/TablaEgresos";
 import { getVentas } from "../../../../services/ventaService";
 import { getEgresos } from "../../../../services/egresoService";
-import "./Balance.css";
+import "./balance.css";
 
 function Balance({ token }) {
   const [mostrarTabla, setMostrarTabla] = useState("ingresos");
