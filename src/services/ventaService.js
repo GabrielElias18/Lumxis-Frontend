@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000/api/ventas';
+const API_URL = 'https://ordereasy-backend-533n.onrender.com/api/ventas';
 
 // Crear una venta
 export const createVenta = async (venta, token) => {

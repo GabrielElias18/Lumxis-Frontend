@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000/api/egresos';
+const API_URL = 'https://ordereasy-backend-533n.onrender.com/api/egresos';
 
 // Crear un egreso
 export const createEgreso = async (egreso, token) => {

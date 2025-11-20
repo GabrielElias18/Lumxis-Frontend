@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000/api/productos'; // Cambia la URL si es necesario
+const API_URL = 'https://ordereasy-backend-533n.onrender.com/api/productos'; // Cambia la URL si es necesario
 
 // Crear un producto
 export const createProduct = async (producto, token) => {

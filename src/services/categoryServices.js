@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000/api/categorias'; // Cambia la URL si es necesario
+const API_URL = 'https://ordereasy-backend-533n.onrender.com/api/categorias'; // Cambia la URL si es necesario
 
 // Crear una nueva categoría
 export const createCategory = async (categoria, token) => {

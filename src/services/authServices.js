@@ -1,7 +1,7 @@
 // src/services/authServices.js
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000/api/auth';
+const API_URL = 'https://ordereasy-backend-533n.onrender.com/api/auth';
 
 // Función para manejar el login
 const loginUser = async (correo, contraseña) => {

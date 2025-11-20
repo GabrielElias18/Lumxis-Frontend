@@ -115,14 +115,14 @@ function Sidebar() {
               <span>Estadísticas</span>
             </Link>
 
-            <Link
+            {/* <Link
               to="prediccion"
               className={`menu-item ${location.pathname.includes('prediccion') ? 'active' : ''}`}
               onClick={() => setIsOpen(false)}
             >
               <Lightbulb className="menu-icon" />
               <span>Prediccion</span>
-            </Link>
+            </Link> */}
           </nav>
         </div>
 
