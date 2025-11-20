@@ -8,7 +8,7 @@ import GestionarCategoriaForm from './vistas/GestionarCategoriaForm';
 import ProductoInfo from './vistas/ProductoInfo';
 import { getCategoriesByUser } from '../../../../services/categoryServices';
 import { getAllProducts } from '../../../../services/productServices';
-import './Inventario.css';
+import './inventario.css';
 
 function Inventario() {
   const [isCrearCategoriaVisible, setCrearCategoriaVisible] = useState(false);
