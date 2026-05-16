@@ -1,28 +1,9 @@
-import axios from 'axios';
+import axiosInstance from '../api/axiosConfig';
 
-const API_URL = 'https://ordereasy-backend-533n.onrender.com/api/egresos';
-
-// Crear un egreso
-export const createEgreso = async (egreso, token) => {
-  try {
-    const response = await axios.post(API_URL, egreso, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || { mensaje: 'Error al registrar el egreso.' };
-  }
-};
-
-// Obtener todos los egresos del usuario
 export const getEgresos = async (token) => {
   try {
-    const response = await axios.get(API_URL, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const response = await axiosInstance.get('/api/egresos', {
+      headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
   } catch (error) {
@@ -30,13 +11,10 @@ export const getEgresos = async (token) => {
   }
 };
 
-// Editar un egreso
-export const updateEgreso = async (id, egreso, token) => {
+export const updateEgreso = async (id, data, token) => {
   try {
-    const response = await axios.put(`${API_URL}/${id}`, egreso, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const response = await axiosInstance.patch(`/api/egresos/${id}`, data, {
+      headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
   } catch (error) {
@@ -44,13 +22,33 @@ export const updateEgreso = async (id, egreso, token) => {
   }
 };
 
-// Eliminar un egreso
+export const getEgresoById = async (id, token) => {
+  try {
+    const response = await axiosInstance.get(`/api/egresos/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { mensaje: 'Error al obtener el egreso.' };
+  }
+};
+
+// Mantenemos este nombre por compatibilidad con los formularios existentes, pero usa el endpoint unificado
+export const createEgresoBatch = async (items, proveedorid, token, descripcion = '') => {
+  try {
+    const response = await axiosInstance.post('/api/egresos', { items, proveedorid, descripcion }, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { mensaje: 'Error al registrar el egreso.' };
+  }
+};
+
 export const deleteEgreso = async (id, token) => {
   try {
-    const response = await axios.delete(`${API_URL}/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const response = await axiosInstance.delete(`/api/egresos/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
   } catch (error) {

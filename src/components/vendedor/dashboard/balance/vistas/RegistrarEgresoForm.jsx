@@ -1,225 +1,318 @@
-import React, { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { X, Package, AlertCircle } from 'lucide-react';
+import { useEffect, useState, useMemo } from "react";
+import { Search, ShoppingCart, Trash2, Plus, Minus, AlertCircle, CheckCircle2, ArrowLeft, FileText, TrendingDown } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { getCategoriesByUser } from "../../../../../services/categoryServices";
 import { getAllProducts } from "../../../../../services/productServices";
-import { createEgreso } from "../../../../../services/egresoService";
-import "./styles/RegistrarEgresoForm.css";
+import { createEgresoBatch } from "../../../../../services/egresoService";
+import { getProveedores } from "../../../../../services/proveedorService";
+import "./styles/CartStyles.css";
 
-const RegistrarEgresoForm = ({ cerrarFormulario }) => {
-  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm();
-  const [categoriasConProductos, setCategoriasConProductos] = useState([]);
-  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+const RegistrarEgresoForm = () => {
+  const navigate = useNavigate();
+  const [productos, setProductos] = useState([]);
+  const [categorias, setCategorias] = useState([]);
+  const [proveedores, setProveedores] = useState([]);
+  const [proveedorId, setProveedorId] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [carrito, setCarrito] = useState([]);
+  const [busqueda, setBusqueda] = useState("");
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("");
   const [cargando, setCargando] = useState(false);
+  const [procesando, setProcesando] = useState(false);
 
   useEffect(() => {
     const cargarDatos = async () => {
       try {
+        setCargando(true);
         const token = localStorage.getItem("token");
-        const categoriasData = await getCategoriesByUser(token);
-        const productosData = await getAllProducts(token);
-
-        if (!Array.isArray(categoriasData) || !Array.isArray(productosData)) {
-          console.error("Los datos de la API no son un array");
-          return;
-        }
-
-        const categoriasMap = categoriasData.reduce((acc, categoria) => {
-          acc[categoria.categoriaid] = { ...categoria, productos: [] };
-          return acc;
-        }, {});
-
-        productosData.forEach((producto) => {
-          if (categoriasMap[producto.categoriaid]) {
-            categoriasMap[producto.categoriaid].productos.push(producto);
-          }
-        });
-
-        setCategoriasConProductos(Object.values(categoriasMap));
+        const [categoriasData, productosData, proveedoresData] = await Promise.all([
+          getCategoriesByUser(token),
+          getAllProducts(token),
+          getProveedores(token)
+        ]);
+        if (Array.isArray(categoriasData)) setCategorias(categoriasData);
+        if (Array.isArray(productosData)) setProductos(productosData);
+        if (Array.isArray(proveedoresData)) setProveedores(proveedoresData);
       } catch (error) {
         console.error("Error al cargar datos:", error);
-        await Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Error al cargar los datos",
-          confirmButtonColor: "#3085d6",
-        });
+        Swal.fire({ icon: "error", title: "Error", text: "No se pudieron cargar los productos" });
+      } finally {
+        setCargando(false);
       }
     };
-
     cargarDatos();
   }, []);
 
-  const productoIdSeleccionado = watch("productoId");
+  const productosFiltrados = useMemo(() => {
+    return productos.filter(p => {
+      const coincideBusqueda = p.nombre.toLowerCase().includes(busqueda.toLowerCase());
+      const coincideCategoria = categoriaSeleccionada ? String(p.categoriaid) === String(categoriaSeleccionada) : true;
+      return coincideBusqueda && coincideCategoria;
+    });
+  }, [productos, busqueda, categoriaSeleccionada]);
 
-  useEffect(() => {
-    if (productoIdSeleccionado && categoriasConProductos.length > 0) {
-      const productoEncontrado = categoriasConProductos
-        .flatMap((cat) => cat.productos)
-        .find((prod) => String(prod.productoid) === String(productoIdSeleccionado));
-
-      setProductoSeleccionado(productoEncontrado || null);
-    }
-  }, [productoIdSeleccionado, categoriasConProductos]);
-
-  const onSubmit = async (data) => {
-    try {
-      setCargando(true);
-      const token = localStorage.getItem("token");
-
-      if (!productoSeleccionado) {
-        throw new Error("Producto no encontrado");
+  const agregarAlCarrito = (producto) => {
+    setCarrito(prev => {
+      const itemExistente = prev.find(item => item.productoid === producto.productoid);
+      if (itemExistente) {
+        return prev.map(item =>
+          item.productoid === producto.productoid
+            ? { ...item, cantidad: item.cantidad + 1 }
+            : item
+        );
       }
+      return [...prev, { ...producto, cantidad: 1 }];
+    });
+  };
 
-      const egresoData = {
-        productoId: productoSeleccionado.productoid,
-        productoNombre: productoSeleccionado.nombre,
-        cantidad: Number(data.cantidad),
-        precioCompra: Number(productoSeleccionado.precioCompra),
-        descripcion: data.descripcion || "",
-      };
+  const actualizarCantidad = (id, delta) => {
+    setCarrito(prev => prev.map(item => {
+      if (item.productoid === id) {
+        const nuevaCantidad = item.cantidad + delta;
+        if (nuevaCantidad > 0) return { ...item, cantidad: nuevaCantidad };
+      }
+      return item;
+    }));
+  };
 
-      await createEgreso(egresoData, token);
+  const setCantidadDirecta = (id, valor) => {
+    const num = parseInt(valor, 10);
+    if (isNaN(num)) return;
+    setCarrito(prev => prev.map(item => {
+      if (item.productoid === id) {
+        return { ...item, cantidad: Math.max(1, num) };
+      }
+      return item;
+    }));
+  };
 
-      const total = Number(data.cantidad) * Number(productoSeleccionado.precioCompra);
+  const eliminarDelCarrito = (id) => {
+    setCarrito(prev => prev.filter(item => item.productoid !== id));
+  };
 
+  const totalCarrito = carrito.reduce((sum, item) => sum + (Number(item.precioCompra) * item.cantidad), 0);
+
+  const finalizarEgreso = async () => {
+    if (carrito.length === 0) return;
+    try {
+      setProcesando(true);
+      const token = localStorage.getItem("token");
+      const items = carrito.map(item => ({
+        productoNombre: item.nombre,
+        cantidad: item.cantidad,
+      }));
+      await createEgresoBatch(items, proveedorId || null, token, descripcion);
       await Swal.fire({
         icon: "success",
         title: "¡Egreso Registrado!",
-        html: `
-          <div class="egreso-resumen">
-            <p><strong>${data.cantidad}</strong> unidades de <strong>${productoSeleccionado.nombre}</strong></p>
-            <p>Precio de compra: $${Number(productoSeleccionado.precioCompra).toLocaleString("es-CO", { maximumFractionDigits: 0 })}</p>
-            <p class="total">Total: $${total.toLocaleString("es-CO", { maximumFractionDigits: 0 })}</p>
-          </div>
-        `,
-        confirmButtonColor: "#3085d6",
-        timer: 3000,
-        timerProgressBar: true,
-        position: "center",
-      }).then(() => {
-        window.location.reload();
+        text: `${carrito.reduce((s, i) => s + i.cantidad, 0)} unidades registradas correctamente.`,
+        timer: 2000,
+        showConfirmButton: false
       });
-
-      reset();
-      cerrarFormulario();
+      navigate("/dashboard/balance");
     } catch (error) {
-      console.error("Error en el egreso:", error);
-      await Swal.fire({
-        icon: "error",
-        title: "Error en el Egreso",
-        text: error.response?.data?.mensaje || error.message || "Error al registrar el egreso",
-        confirmButtonColor: "#3085d6",
-      });
+      console.error("Error al procesar el egreso:", error);
+      Swal.fire({ icon: "error", title: "Error", text: error?.mensaje || "Ocurrió un problema al registrar el egreso" });
     } finally {
-      setCargando(false);
+      setProcesando(false);
     }
   };
 
+  const formatoMoneda = (valor) =>
+    new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(valor);
+
   return (
-    <div className="fondo-modal" onClick={cerrarFormulario}>
-      <div className="ventana-flotante" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="titulo">Registrar Egreso</h2>
-          <button className="cerrar-modal" onClick={cerrarFormulario}>
-            <X size={20} />
-          </button>
+    <div className="cart-page-container">
+      <div className="cart-modal-container full-page">
+        <div className="cart-modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button className="back-button" onClick={() => navigate("/dashboard/balance")}>
+              <ArrowLeft size={20} />
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <TrendingDown size={24} style={{ color: 'var(--color-danger)' }} />
+              <h2>Nuevo Egreso (Compra)</h2>
+            </div>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="formulario">
-          <div className="form-group">
-            <label className="label">Producto:</label>
-            <select
-              {...register("productoId", { required: "El producto es obligatorio" })}
-              className="select"
-            >
-              <option value="">Seleccione un producto</option>
-              {categoriasConProductos.map((categoria) => (
-                <optgroup key={categoria.categoriaid} label={categoria.nombre}>
-                  {categoria.productos.length > 0 ? (
-                    categoria.productos.map((producto) => (
-                      <option key={producto.productoid} value={producto.productoid}>
-                        {producto.nombre} - Stock: {producto.cantidadDisponible}
-                      </option>
-                    ))
-                  ) : (
-                    <option disabled>No hay productos</option>
-                  )}
-                </optgroup>
-              ))}
-            </select>
-            {errors.productoId && (
-              <p className="error">
-                <AlertCircle size={16} />
-                {errors.productoId.message}
-              </p>
-            )}
-          </div>
-
-          {productoSeleccionado && (
-            <div className="info-producto">
-              <h3>Información del Producto</h3>
-              <p>
-                <span>Precio de compra:</span>
-                <strong>${Number(productoSeleccionado.precioCompra).toLocaleString("es-CO", { maximumFractionDigits: 0 })}</strong>
-              </p>
-              <p>
-                <span>Stock actual:</span>
-                <strong>{productoSeleccionado.cantidadDisponible} unidades</strong>
-              </p>
+        <div className="cart-main-content">
+          {/* LEFT: Product selection */}
+          <div className="product-selection-panel">
+            <div className="search-filter-bar">
+              <div className="search-input-wrapper">
+                <Search className="search-icon" size={18} />
+                <input
+                  type="text"
+                  placeholder="Buscar producto..."
+                  value={busqueda}
+                  onChange={e => setBusqueda(e.target.value)}
+                />
+              </div>
+              <select
+                className="category-select"
+                value={categoriaSeleccionada}
+                onChange={e => setCategoriaSeleccionada(e.target.value)}
+              >
+                <option value="">Todas las categorías</option>
+                {categorias.map(cat => (
+                  <option key={cat.categoriaid} value={cat.categoriaid}>{cat.nombre}</option>
+                ))}
+              </select>
             </div>
-          )}
 
-          <div className="form-group">
-            <label className="label">Cantidad:</label>
-            <input
-              type="number"
-              {...register("cantidad", {
-                required: "Ingrese una cantidad",
-                min: { value: 1, message: "La cantidad debe ser mayor a 0" },
-              })}
-              className="input"
-            />
-            {errors.cantidad && (
-              <p className="error">
-                <AlertCircle size={16} />
-                {errors.cantidad.message}
-              </p>
+            {cargando ? (
+              <div className="empty-cart-state">
+                <div className="loader-spinner" style={{ borderTopColor: 'var(--color-danger)' }}></div>
+                <p>Cargando productos...</p>
+              </div>
+            ) : productosFiltrados.length > 0 ? (
+              <div className="productos-container-cart">
+                {productosFiltrados.map(p => (
+                  <div key={p.productoid} className="producto-card" onClick={() => agregarAlCarrito(p)}>
+                    <div className="producto-imagen-container">
+                      <img
+                        src={p.imagenes && p.imagenes.length > 0
+                          ? (p.imagenes[0].startsWith("http") ? p.imagenes[0] : `${API_URL}/uploads/${p.imagenes[0]}`)
+                          : "/images/default-product.png"}
+                        alt={p.nombre}
+                        className="producto-imagen"
+                        onError={(e) => e.target.src = "/images/default-product.png"}
+                      />
+                      <div className="stock-badge-cart">
+                        Stock: {p.cantidadDisponible}
+                      </div>
+                    </div>
+                    <div className="product-info">
+                      <h3 className="producto-nombre">{p.nombre}</h3>
+                      {p.categoriaNombre && <span className="product-category">{p.categoriaNombre}</span>}
+                      <span className="producto-precio-cart egreso-precio">{formatoMoneda(p.precioCompra)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-cart-state">
+                <AlertCircle size={48} />
+                <p>No se encontraron productos</p>
+              </div>
             )}
           </div>
 
-          <div className="form-group">
-            <label className="label">Descripción:</label>
-            <textarea
-              {...register("descripcion", { required: "La descripción es obligatoria" })}
-              className="textarea"
-              placeholder="Ingrese una descripción del egreso"
-            ></textarea>
-            {errors.descripcion && (
-              <p className="error">
-                <AlertCircle size={16} />
-                {errors.descripcion.message}
-              </p>
-            )}
-          </div>
+          {/* RIGHT: Cart summary */}
+          <div className="cart-summary-panel">
+            <div className="cart-title">
+              <TrendingDown size={20} style={{ color: 'var(--color-danger)' }} />
+              Lista de Compra
+            </div>
 
-          <div className="botones-formulario">
-            <button type="submit" className="boton boton-primario" disabled={cargando}>
-              {cargando ? (
-                <>
-                  <span className="cargando"></span>
-                  <span>Registrando...</span>
-                </>
+            <div className="client-selection-cart">
+              <label>Proveedor (Opcional)</label>
+              <select
+                value={proveedorId}
+                onChange={(e) => setProveedorId(e.target.value)}
+                className="cart-select-input"
+              >
+                <option value="">Proveedor Genérico / Otros</option>
+                {proveedores.map(p => (
+                  <option key={p.proveedorid} value={p.proveedorid}>{p.nombreProveedor}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="cart-notes-section">
+              <label><FileText size={11} /> Notas (Opcional)</label>
+              <textarea
+                className="cart-notes-input"
+                placeholder="Descripción o referencia del egreso..."
+                value={descripcion}
+                onChange={e => setDescripcion(e.target.value)}
+                rows={2}
+              />
+            </div>
+
+            <div className="cart-items-list">
+              {carrito.length === 0 ? (
+                <div className="empty-cart-state">
+                  <ShoppingCart size={40} strokeWidth={1.5} />
+                  <p>La lista está vacía.<br />Selecciona productos a la izquierda.</p>
+                </div>
               ) : (
-                <>
-                  <Package size={18} />
-                  <span>Registrar Egreso</span>
-                </>
+                carrito.map(item => (
+                  <div key={item.productoid} className="cart-item">
+                    <img
+                      src={item.imagenes && item.imagenes.length > 0
+                        ? (item.imagenes[0].startsWith("http") ? item.imagenes[0] : `${API_URL}/uploads/${item.imagenes[0]}`)
+                        : "/images/default-product.png"}
+                      className="cart-item-image"
+                      alt={item.nombre}
+                    />
+                    <div className="cart-item-details">
+                      <span className="cart-item-name">{item.nombre}</span>
+                      <span className="cart-item-price egreso-precio">{formatoMoneda(Number(item.precioCompra) * item.cantidad)}</span>
+                    </div>
+                    <div className="cart-item-actions">
+                      <Trash2
+                        size={16}
+                        className="remove-item"
+                        onClick={() => eliminarDelCarrito(item.productoid)}
+                      />
+                      <div className="quantity-controls">
+                        <button
+                          className="qty-btn"
+                          onClick={() => actualizarCantidad(item.productoid, -1)}
+                          disabled={item.cantidad <= 1}
+                        >
+                          <Minus size={12} />
+                        </button>
+                        <input
+                          className="qty-input"
+                          type="number"
+                          min={1}
+                          value={item.cantidad}
+                          onChange={e => setCantidadDirecta(item.productoid, e.target.value)}
+                        />
+                        <button
+                          className="qty-btn"
+                          onClick={() => actualizarCantidad(item.productoid, 1)}
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
               )}
-            </button>
+            </div>
+
+            <div className="cart-footer">
+              <div className="cart-total-row">
+                <span className="total-label">Inversión Total</span>
+                <span className="total-amount egreso-precio">{formatoMoneda(totalCarrito)}</span>
+              </div>
+              <button
+                className={`checkout-button egreso-btn ${procesando ? 'loading' : ''}`}
+                disabled={carrito.length === 0 || procesando}
+                onClick={finalizarEgreso}
+              >
+                {procesando ? (
+                  <>
+                    <div className="loader-spinner"></div>
+                    <span>Procesando...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={20} />
+                    <span>Registrar Egreso</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

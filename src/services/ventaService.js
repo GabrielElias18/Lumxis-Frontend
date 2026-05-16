@@ -1,34 +1,9 @@
-import axios from 'axios';
+import axiosInstance from '../api/axiosConfig';
 
-const API_URL = 'https://ordereasy-backend-533n.onrender.com/api/ventas';
-
-// Crear una venta
-export const createVenta = async (venta, token) => {
-  try {
-    const response = await axios.post(
-      API_URL,
-      venta,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || { mensaje: 'Error al registrar la venta.' };
-  }
-};
-
-// Obtener todas las ventas del usuario
 export const getVentas = async (token) => {
   try {
-    const response = await axios.get(API_URL, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+    const response = await axiosInstance.get('/api/ventas', {
+      headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
   } catch (error) {
@@ -36,14 +11,10 @@ export const getVentas = async (token) => {
   }
 };
 
-// Actualizar una venta
-export const updateVenta = async (id, venta, token) => {
+export const updateVenta = async (id, data, token) => {
   try {
-    const response = await axios.put(`${API_URL}/${id}`, venta, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+    const response = await axiosInstance.patch(`/api/ventas/${id}`, data, {
+      headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
   } catch (error) {
@@ -51,13 +22,33 @@ export const updateVenta = async (id, venta, token) => {
   }
 };
 
-// Eliminar una venta
+export const getVentaById = async (id, token) => {
+  try {
+    const response = await axiosInstance.get(`/api/ventas/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { mensaje: 'Error al obtener la venta.' };
+  }
+};
+
+// Mantenemos este nombre por compatibilidad con los formularios existentes, pero usa el endpoint unificado
+export const createVentaBatch = async (items, clienteid, token, descripcion = '') => {
+  try {
+    const response = await axiosInstance.post('/api/ventas', { items, clienteid, descripcion }, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { mensaje: 'Error al registrar la venta.' };
+  }
+};
+
 export const deleteVenta = async (id, token) => {
   try {
-    const response = await axios.delete(`${API_URL}/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const response = await axiosInstance.delete(`/api/ventas/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
   } catch (error) {

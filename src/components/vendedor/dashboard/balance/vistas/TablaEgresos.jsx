@@ -1,15 +1,20 @@
-import React, { useEffect, useState } from "react";
-import Swal from "sweetalert2";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { FileDown, TrendingDown } from "lucide-react";
 import "../vistas/styles/TablaVentas.css";
-import { getEgresos, deleteEgreso, updateEgreso } from "../../../../../services/egresoService";
+import { getEgresos } from "../../../../../services/egresoService";
+import { getProveedores } from "../../../../../services/proveedorService";
+import { exportarEgresos } from "../exportarBalance";
 
-const TablaEgresos = ({ actualizarBalance }) => {
+const TablaEgresos = () => {
+  const navigate = useNavigate();
   const [egresos, setEgresos] = useState([]);
   const [paginaActual, setPaginaActual] = useState(1);
   const registrosPorPagina = 15;
-  const [editingEgreso, setEditingEgreso] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
+  const [proveedores, setProveedores] = useState([]);
+  const [selectedProveedor, setSelectedProveedor] = useState("");
 
   useEffect(() => {
     fetchEgresos();
@@ -18,10 +23,14 @@ const TablaEgresos = ({ actualizarBalance }) => {
   const fetchEgresos = async () => {
     try {
       const token = localStorage.getItem("token");
-      const data = await getEgresos(token);
-      setEgresos(data);
+      const [egresosData, proveedoresData] = await Promise.all([
+        getEgresos(token),
+        getProveedores(token)
+      ]);
+      setEgresos(egresosData);
+      setProveedores(proveedoresData);
     } catch (error) {
-      console.error("Error al obtener los egresos:", error);
+      console.error("Error al obtener datos:", error);
     }
   };
 
@@ -29,232 +38,97 @@ const TablaEgresos = ({ actualizarBalance }) => {
     const d = new Date(fecha);
     const mes = (d.getMonth() + 1).toString().padStart(2, '0');
     const dia = d.getDate().toString().padStart(2, '0');
-    const anio = d.getFullYear();
-    return `${mes}/${dia}/${anio}`;
-  };
-
-  const handleEditar = (egreso) => {
-    setEditingEgreso(egreso);
-    Swal.fire({
-      title: 'Editar Egreso',
-      html: `
-        <div class="swal2-input-container">
-          <label for="cantidad">Cantidad:</label>
-          <input 
-            type="number" 
-            id="cantidad" 
-            class="swal2-input" 
-            value="${egreso.cantidad}"
-            min="1"
-          >
-          <label for="descripcion">Descripción:</label>
-          <textarea 
-            id="descripcion" 
-            class="swal2-textarea"
-          >${egreso.descripcion ?? ''}</textarea>
-        </div>
-      `,
-      showCancelButton: true,
-      confirmButtonText: 'Guardar',
-      cancelButtonText: 'Cancelar',
-      preConfirm: () => {
-        const cantidad = document.getElementById('cantidad').value;
-        const descripcion = document.getElementById('descripcion').value;
-        
-        if (!cantidad || cantidad < 1) {
-          Swal.showValidationMessage('La cantidad debe ser mayor a 0');
-          return false;
-        }
-        
-        return { cantidad: parseInt(cantidad), descripcion };
-      }
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const token = localStorage.getItem("token");
-          const updatedData = {
-            cantidad: result.value.cantidad,
-            descripcion: result.value.descripcion
-          };
-          
-          await updateEgreso(egreso.egresoid, updatedData, token);
-          
-          setEgresos(egresos.map(e => 
-            e.egresoid === egreso.egresoid 
-              ? { ...e, ...updatedData }
-              : e
-          ));
-
-          actualizarBalance();
-
-          Swal.fire({
-            title: 'Actualizado',
-            text: 'El egreso ha sido actualizado con éxito',
-            icon: 'success',
-            timer: 2000,
-            showConfirmButton: false
-          });
-        } catch (error) {
-          Swal.fire({
-            title: 'Error',
-            text: 'No se pudo actualizar el egreso',
-            icon: 'error'
-          });
-          console.error("Error al actualizar el egreso:", error);
-        }
-      }
-    });
-  };
-
-  const handleEliminar = async (egresoid) => {
-    if (!egresoid) {
-      console.error("Error: ID del egreso es undefined.");
-      return;
-    }
-
-    Swal.fire({
-      title: "¿Estás seguro?",
-      text: "Esta acción no se puede deshacer.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar"
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const token = localStorage.getItem("token");
-          await deleteEgreso(egresoid, token);
-          setEgresos(egresos.filter((egreso) => egreso.egresoid !== egresoid));
-
-          actualizarBalance();
-
-          Swal.fire({
-            title: "Eliminado",
-            text: "El egreso ha sido eliminado con éxito.",
-            icon: "success",
-            timer: 2000,
-            showConfirmButton: false
-          });
-        } catch (error) {
-          Swal.fire({
-            title: "Error",
-            text: "No se pudo eliminar el egreso.",
-            icon: "error"
-          });
-          console.error("Error al eliminar el egreso:", error);
-        }
-      }
-    });
+    return `${mes}/${dia}/${d.getFullYear()}`;
   };
 
   const egresosFiltrados = egresos.filter((egreso) => {
-    const productoNombre = egreso.productoNombre ?? '';
-    const descripcion = egreso.descripcion ?? '';
-  
-    const coincideBusqueda = 
-      productoNombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      descripcion.toLowerCase().includes(searchTerm.toLowerCase());
-  
-    // Convertir la fecha del egreso al formato YYYY-MM-DD para comparación segura
-    const fecha = new Date(egreso.createdAt);
-    const yyyy = fecha.getFullYear();
-    const mm = String(fecha.getMonth() + 1).padStart(2, '0');
-    const dd = String(fecha.getDate()).padStart(2, '0');
-    const fechaFormateada = `${yyyy}-${mm}-${dd}`;
-  
-    const coincideFecha = selectedDate 
-      ? fechaFormateada === selectedDate
-      : true;
-  
-    return coincideBusqueda && coincideFecha;
-  });
-  
+    const nombresProductos = egreso.detalles?.map(d => d.productoNombre).join(" ").toLowerCase() || "";
+    const coincideBusqueda =
+      nombresProductos.includes(searchTerm.toLowerCase()) ||
+      egreso.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      egreso.proveedor?.nombreProveedor?.toLowerCase().includes(searchTerm.toLowerCase());
 
-  const indiceInicial = (paginaActual - 1) * registrosPorPagina;
-  const indiceFinal = indiceInicial + registrosPorPagina;
-  const egresosPaginados = egresosFiltrados.slice(indiceInicial, indiceFinal);
+    const fechaEgresoLocal = new Date(egreso.createdAt);
+    const fechaFormateada = `${fechaEgresoLocal.getFullYear()}-${String(fechaEgresoLocal.getMonth() + 1).padStart(2, '0')}-${String(fechaEgresoLocal.getDate()).padStart(2, '0')}`;
+
+    return coincideBusqueda &&
+      (selectedDate ? fechaFormateada === selectedDate : true) &&
+      (selectedProveedor ? (selectedProveedor === "null" ? !egreso.proveedorid : String(egreso.proveedorid) === String(selectedProveedor)) : true);
+  });
+
+  const egresosPaginados = egresosFiltrados.slice((paginaActual - 1) * registrosPorPagina, paginaActual * registrosPorPagina);
   const totalPaginas = Math.ceil(egresosFiltrados.length / registrosPorPagina);
 
   return (
     <div className="tabla-container">
-      <h3>Egresos</h3>
-      <div className="filters-container">
-        <input
-          type="text"
-          placeholder="Buscar por nombre..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="filter-input"
-        />
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          className="filter-input"
-        />
+      <div className="tabla-top-bar">
+        <h3>Egresos (Compras)</h3>
+        <button
+          className="tabla-export-btn"
+          onClick={() => exportarEgresos(egresosFiltrados)}
+          disabled={egresosFiltrados.length === 0}
+          title="Exportar a Excel"
+        >
+          <FileDown size={14} />
+          <span>Exportar</span>
+        </button>
       </div>
+
+      <div className="filters-container">
+        <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setPaginaActual(1); }} className="filter-input" />
+        <input type="date" value={selectedDate} onChange={(e) => { setSelectedDate(e.target.value); setPaginaActual(1); }} className="filter-input" />
+        <select className="filter-input" value={selectedProveedor} onChange={(e) => { setSelectedProveedor(e.target.value); setPaginaActual(1); }}>
+          <option value="">Todos los proveedores</option>
+          <option value="null">Sin proveedor</option>
+          {proveedores.map(p => <option key={p.proveedorid} value={p.proveedorid}>{p.nombreProveedor}</option>)}
+        </select>
+      </div>
+
       <table className="tabla-productos">
         <thead>
           <tr>
-            <th>Fecha</th>
-            <th>Producto Comprado</th>
-            <th>Descripción</th>
-            <th>Cantidad</th>
-            <th>Total</th>
-            <th>Acciones</th>
+            <th className="text-left">Fecha</th>
+            <th className="text-left">Productos</th>
+            <th className="text-left">Proveedor</th>
+            <th className="text-right">Items</th>
+            <th className="text-right">Total</th>
           </tr>
         </thead>
         <tbody>
           {egresosPaginados.length > 0 ? (
-            egresosPaginados.map((egreso) => (
-              <tr key={egreso.egresoid}>
-                <td>{formatearFecha(egreso.createdAt)}</td>
-                <td>{egreso.productoNombre ?? 'N/A'}</td>
-                <td>{egreso.descripcion ?? 'Sin descripción'}</td>
-                <td>{egreso.cantidad}</td>
-                <td>
-                  ${Number(egreso.total).toLocaleString("es-CO", {})}
-                </td>
-                <td>
-                  <button 
-                    className="editar-venta"
-                    onClick={() => handleEditar(egreso)}
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    className="eliminar-venta"
-                    onClick={() => handleEliminar(egreso.egresoid)}
-                  >
-                    🗑
-                  </button>
-                </td>
-              </tr>
-            ))
+            egresosPaginados.map((egreso) => {
+              const totalItems = egreso.detalles?.reduce((acc, d) => acc + d.cantidad, 0) || 0;
+              const resumen = egreso.detalles?.length > 1
+                ? `${egreso.detalles[0].productoNombre} (+${egreso.detalles.length - 1})`
+                : egreso.detalles?.[0]?.productoNombre || "-";
+              return (
+                <tr key={egreso.egresoid} style={{ cursor: 'pointer' }} onClick={() => navigate(`/dashboard/egreso/${egreso.egresoid}`, { state: { egreso } })}>
+                  <td className="text-left">{formatearFecha(egreso.createdAt)}</td>
+                  <td className="text-left"><strong>{resumen}</strong></td>
+                  <td className="text-left">{egreso.proveedor?.nombreProveedor || <span style={{ opacity: 0.5 }}>General</span>}</td>
+                  <td className="text-right">{totalItems}</td>
+                  <td className="text-right total-cell egreso-text">${Number(egreso.total).toLocaleString("es-CO")}</td>
+                </tr>
+              );
+            })
           ) : (
             <tr>
-              <td colSpan="6">No hay egresos registrados</td>
+              <td colSpan="5" className="tabla-empty">
+                <TrendingDown size={28} style={{ opacity: 0.25, marginBottom: '0.5rem' }} />
+                <p>{searchTerm || selectedDate || selectedProveedor ? 'Sin resultados para los filtros aplicados' : 'Aún no hay egresos registrados'}</p>
+              </td>
             </tr>
           )}
         </tbody>
       </table>
-      <div className="paginacion">
-        <button
-          onClick={() => setPaginaActual(paginaActual - 1)}
-          disabled={paginaActual === 1}
-        >
-          Anterior
-        </button>
-        <span>Página {paginaActual} de {totalPaginas}</span>
-        <button
-          onClick={() => setPaginaActual(paginaActual + 1)}
-          disabled={paginaActual === totalPaginas}
-        >
-          Siguiente
-        </button>
-      </div>
+
+      {totalPaginas > 1 && (
+        <div className="paginacion">
+          <button onClick={() => setPaginaActual(p => p - 1)} disabled={paginaActual === 1}>Anterior</button>
+          <span>Página {paginaActual} de {totalPaginas}</span>
+          <button onClick={() => setPaginaActual(p => p + 1)} disabled={paginaActual === totalPaginas}>Siguiente</button>
+        </div>
+      )}
     </div>
   );
 };

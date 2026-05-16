@@ -1,15 +1,20 @@
-import React, { useEffect, useState } from "react";
-import Swal from "sweetalert2";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { FileDown, TrendingUp } from "lucide-react";
 import "../vistas/styles/TablaVentas.css";
-import { getVentas, deleteVenta, updateVenta } from "../../../../../services/ventaService";
+import { getVentas } from "../../../../../services/ventaService";
+import { getClientes } from "../../../../../services/clienteService";
+import { exportarVentas } from "../exportarBalance";
 
-const TablaIngresos = ({ actualizarBalance }) => {
+const TablaIngresos = () => {
+  const navigate = useNavigate();
   const [ventas, setVentas] = useState([]);
   const [paginaActual, setPaginaActual] = useState(1);
   const registrosPorPagina = 15;
-  const [editingVenta, setEditingVenta] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
+  const [clientes, setClientes] = useState([]);
+  const [selectedCliente, setSelectedCliente] = useState("");
 
   useEffect(() => {
     fetchVentas();
@@ -18,10 +23,14 @@ const TablaIngresos = ({ actualizarBalance }) => {
   const fetchVentas = async () => {
     try {
       const token = localStorage.getItem("token");
-      const data = await getVentas(token);
-      setVentas(data);
+      const [ventasData, clientesData] = await Promise.all([
+        getVentas(token),
+        getClientes(token)
+      ]);
+      setVentas(ventasData);
+      setClientes(clientesData);
     } catch (error) {
-      console.error("Error al obtener las ventas:", error);
+      console.error("Error al obtener datos:", error);
     }
   };
 
@@ -29,231 +38,97 @@ const TablaIngresos = ({ actualizarBalance }) => {
     const d = new Date(fecha);
     const mes = (d.getMonth() + 1).toString().padStart(2, '0');
     const dia = d.getDate().toString().padStart(2, '0');
-    const anio = d.getFullYear();
-    return `${mes}/${dia}/${anio}`;
-  };
-
-  const handleEditar = (venta) => {
-    setEditingVenta(venta);
-    Swal.fire({
-      title: 'Editar Venta',
-      html: `
-        <div class="swal2-input-container">
-          <label for="cantidad">Cantidad:</label>
-          <input 
-            type="number" 
-            id="cantidad" 
-            class="swal2-input" 
-            value="${venta.cantidad}"
-            min="1"
-          >
-          <label for="descripcion">Descripción:</label>
-          <textarea 
-            id="descripcion" 
-            class="swal2-textarea"
-          >${venta.descripcion}</textarea>
-        </div>
-      `,
-      showCancelButton: true,
-      confirmButtonText: 'Guardar',
-      cancelButtonText: 'Cancelar',
-      preConfirm: () => {
-        const cantidad = document.getElementById('cantidad').value;
-        const descripcion = document.getElementById('descripcion').value;
-
-        if (!cantidad || cantidad < 1) {
-          Swal.showValidationMessage('La cantidad debe ser mayor a 0');
-          return false;
-        }
-
-        return { cantidad: parseInt(cantidad), descripcion };
-      }
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const token = localStorage.getItem("token");
-          const precioUnitario = venta.total / venta.cantidad;
-          const updatedData = {
-            cantidad: result.value.cantidad,
-            descripcion: result.value.descripcion,
-            total: precioUnitario * result.value.cantidad
-          };
-
-          await updateVenta(venta.ventaid, updatedData, token);
-
-          setVentas(ventas.map(v => 
-            v.ventaid === venta.ventaid
-              ? { ...v, ...updatedData }
-              : v
-          ));
-
-          actualizarBalance();
-
-          Swal.fire({
-            title: 'Actualizado',
-            text: 'La venta ha sido actualizada con éxito',
-            icon: 'success',
-            timer: 2000,
-            showConfirmButton: false
-          });
-        } catch (error) {
-          Swal.fire({
-            title: 'Error',
-            text: 'No se pudo actualizar la venta',
-            icon: 'error'
-          });
-          console.error("Error al actualizar la venta:", error);
-        }
-      }
-    });
-  };
-
-  const handleEliminar = async (ventaid) => {
-    if (!ventaid) {
-      console.error("Error: ID de la venta es undefined.");
-      return;
-    }
-
-    Swal.fire({
-      title: "¿Estás seguro?",
-      text: "Esta acción no se puede deshacer.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar"
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const token = localStorage.getItem("token");
-          await deleteVenta(ventaid, token);
-          setVentas(ventas.filter((venta) => venta.ventaid !== ventaid));
-
-          actualizarBalance();
-
-          Swal.fire({
-            title: "Eliminado",
-            text: "La venta ha sido eliminada con éxito.",
-            icon: "success",
-            timer: 2000,
-            showConfirmButton: false
-          });
-        } catch (error) {
-          Swal.fire({
-            title: "Error",
-            text: "No se pudo eliminar la venta.",
-            icon: "error"
-          });
-          console.error("Error al eliminar la venta:", error);
-        }
-      }
-    });
+    return `${mes}/${dia}/${d.getFullYear()}`;
   };
 
   const ventasFiltradas = ventas.filter((venta) => {
-    const coincideBusqueda = 
-      venta.productoNombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      venta.descripcion?.toLowerCase().includes(searchTerm.toLowerCase());
-  
-    // Obtener la fecha local en formato YYYY-MM-DD (para comparar con el input date)
+    const nombresProductos = venta.detalles?.map(d => d.productoNombre).join(" ").toLowerCase() || "";
+    const coincideBusqueda =
+      nombresProductos.includes(searchTerm.toLowerCase()) ||
+      venta.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      venta.cliente?.nombreCliente?.toLowerCase().includes(searchTerm.toLowerCase());
+
     const fechaVentaLocal = new Date(venta.createdAt);
-    const yyyy = fechaVentaLocal.getFullYear();
-    const mm = String(fechaVentaLocal.getMonth() + 1).padStart(2, '0');
-    const dd = String(fechaVentaLocal.getDate()).padStart(2, '0');
-    const fechaFormateada = `${yyyy}-${mm}-${dd}`;
-  
-    const coincideFecha = selectedDate 
-      ? fechaFormateada === selectedDate
-      : true;
-  
-    return coincideBusqueda && coincideFecha;
+    const fechaFormateada = `${fechaVentaLocal.getFullYear()}-${String(fechaVentaLocal.getMonth() + 1).padStart(2, '0')}-${String(fechaVentaLocal.getDate()).padStart(2, '0')}`;
+
+    return coincideBusqueda &&
+      (selectedDate ? fechaFormateada === selectedDate : true) &&
+      (selectedCliente ? (selectedCliente === "null" ? !venta.clienteid : String(venta.clienteid) === String(selectedCliente)) : true);
   });
-  
-  
-  const indiceInicial = (paginaActual - 1) * registrosPorPagina;
-  const indiceFinal = indiceInicial + registrosPorPagina;
-  const ventasPaginadas = ventasFiltradas.slice(indiceInicial, indiceFinal);
+
+  const ventasPaginadas = ventasFiltradas.slice((paginaActual - 1) * registrosPorPagina, paginaActual * registrosPorPagina);
   const totalPaginas = Math.ceil(ventasFiltradas.length / registrosPorPagina);
 
   return (
     <div className="tabla-container">
-      <h3>Ingresos</h3>
-      <div className="filters-container">
-        <input
-          type="text"
-          placeholder="Buscar por nombre..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="filter-input"
-        />
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          className="filter-input"
-        />
+      <div className="tabla-top-bar">
+        <h3>Ingresos (Ventas)</h3>
+        <button
+          className="tabla-export-btn"
+          onClick={() => exportarVentas(ventasFiltradas)}
+          disabled={ventasFiltradas.length === 0}
+          title="Exportar a Excel"
+        >
+          <FileDown size={14} />
+          <span>Exportar</span>
+        </button>
       </div>
+
+      <div className="filters-container">
+        <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setPaginaActual(1); }} className="filter-input" />
+        <input type="date" value={selectedDate} onChange={(e) => { setSelectedDate(e.target.value); setPaginaActual(1); }} className="filter-input" />
+        <select className="filter-input" value={selectedCliente} onChange={(e) => { setSelectedCliente(e.target.value); setPaginaActual(1); }}>
+          <option value="">Todos los clientes</option>
+          <option value="null">Sin cliente</option>
+          {clientes.map(c => <option key={c.clienteid} value={c.clienteid}>{c.nombreCliente}</option>)}
+        </select>
+      </div>
+
       <table className="tabla-productos">
         <thead>
           <tr>
-            <th>Fecha</th>
-            <th>Producto Vendido</th>
-            <th>Descripción</th>
-            <th>Cantidad</th>
-            <th>Total</th>
-            <th>Acciones</th>
+            <th className="text-left">Fecha</th>
+            <th className="text-left">Productos</th>
+            <th className="text-left">Cliente</th>
+            <th className="text-right">Items</th>
+            <th className="text-right">Total</th>
           </tr>
         </thead>
         <tbody>
           {ventasPaginadas.length > 0 ? (
-            ventasPaginadas.map((venta) => (
-              <tr key={venta.ventaid}>
-                <td>{formatearFecha(venta.createdAt)}</td>
-                <td>{venta.productoNombre}</td>
-                <td>{venta.descripcion}</td>
-                <td>{venta.cantidad}</td>
-                <td>
-                  ${Number(venta.total).toLocaleString("es-CO", {})}
-                </td>
-                <td>
-                  <button 
-                    className="editar-venta"
-                    onClick={() => handleEditar(venta)}
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    className="eliminar-venta"
-                    onClick={() => handleEliminar(venta.ventaid)}
-                  >
-                    🗑
-                  </button>
-                </td>
-              </tr>
-            ))
+            ventasPaginadas.map((venta) => {
+              const totalItems = venta.detalles?.reduce((acc, d) => acc + d.cantidad, 0) || 0;
+              const resumen = venta.detalles?.length > 1
+                ? `${venta.detalles[0].productoNombre} (+${venta.detalles.length - 1})`
+                : venta.detalles?.[0]?.productoNombre || "-";
+              return (
+                <tr key={venta.ventaid} style={{ cursor: 'pointer' }} onClick={() => navigate(`/dashboard/venta/${venta.ventaid}`, { state: { venta } })}>
+                  <td className="text-left">{formatearFecha(venta.createdAt)}</td>
+                  <td className="text-left"><strong>{resumen}</strong></td>
+                  <td className="text-left">{venta.cliente?.nombreCliente || <span style={{ opacity: 0.5 }}>General</span>}</td>
+                  <td className="text-right">{totalItems}</td>
+                  <td className="text-right total-cell">${Number(venta.total).toLocaleString("es-CO")}</td>
+                </tr>
+              );
+            })
           ) : (
             <tr>
-              <td colSpan="6">No hay ventas registradas</td>
+              <td colSpan="5" className="tabla-empty">
+                <TrendingUp size={28} style={{ opacity: 0.25, marginBottom: '0.5rem' }} />
+                <p>{searchTerm || selectedDate || selectedCliente ? 'Sin resultados para los filtros aplicados' : 'Aún no hay ventas registradas'}</p>
+              </td>
             </tr>
           )}
         </tbody>
       </table>
-      <div className="paginacion">
-        <button
-          onClick={() => setPaginaActual(paginaActual - 1)}
-          disabled={paginaActual === 1}
-        >
-          Anterior
-        </button>
-        <span>Página {paginaActual} de {totalPaginas}</span>
-        <button
-          onClick={() => setPaginaActual(paginaActual + 1)}
-          disabled={paginaActual === totalPaginas}
-        >
-          Siguiente
-        </button>
-      </div>
+
+      {totalPaginas > 1 && (
+        <div className="paginacion">
+          <button onClick={() => setPaginaActual(p => p - 1)} disabled={paginaActual === 1}>Anterior</button>
+          <span>Página {paginaActual} de {totalPaginas}</span>
+          <button onClick={() => setPaginaActual(p => p + 1)} disabled={paginaActual === totalPaginas}>Siguiente</button>
+        </div>
+      )}
     </div>
   );
 };

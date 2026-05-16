@@ -1,250 +1,161 @@
-// ...otros imports
 import React, { useState, useEffect } from 'react';
+import { ShoppingCart, Search, FileSpreadsheet } from 'lucide-react';
 import { getAllProducts } from '../../../../services/productServices';
-import { getVentas } from '../../../../services/ventaService';
-import { predecirDemanda } from '../../../../services/prediccionService';
-import FiltroProductos from './FiltroProductos';
 import { exportarProductosPorPaginas } from './exportarExcel';
 import './Productos.css';
 
 const Productos = () => {
   const [productos, setProductos] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [paginaActual, setPaginaActual] = useState(1);
-  const productosPorPagina = 20;
+  const [searchTerm, setSearchTerm] = useState(() => localStorage.getItem("prodSearchTerm") || "");
+  const [categoriaFiltro, setCategoriaFiltro] = useState(() => localStorage.getItem("prodCatFilter") || "Todas");
+  const [paginaActual, setPaginaActual] = useState(() => parseInt(localStorage.getItem("prodCurrentPage")) || 1);
   const [paginasAExportar, setPaginasAExportar] = useState(1);
-  const [categoriaFiltro, setCategoriaFiltro] = useState('Todas');
+  const productosPorPagina = 20;
 
-  const [orden, setOrden] = useState({
-    fecha: 'none',
-    nombre: 'none',
-    precioCompra: 'none',
-    precioVenta: 'none',
-    cantidadDisponible: 'none',
-    diasMercado: 'none',
-    categoriaNombre: 'none',
-    demanda: 'none',
-    historico: 'none',
-  });
-
-  const [demandaPorProducto, setDemandaPorProducto] = useState({});
+  const token = localStorage.getItem('token');
 
   useEffect(() => {
     const fetchProductos = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.error('Token no disponible');
-        return;
-      }
-
+      if (!token) return;
       try {
-        const productosData = await getAllProducts(token);
-        const ventas = await getVentas(token);
-
-        const ventasPorProducto = productosData.reduce((acc, producto) => {
-          const ventasFiltradas = ventas.filter(
-            (venta) =>
-              venta.productoNombre?.toLowerCase() === producto.nombre?.toLowerCase()
-          );
-          const totalVentas = ventasFiltradas.reduce((acc, venta) => acc + venta.cantidad, 0);
-          acc[producto.productoid] = totalVentas;
-          return acc;
-        }, {});
-
-        const productosConHistorico = productosData.map((producto) => ({
-          ...producto,
-          historico: ventasPorProducto[producto.productoid] || 0,
-        }));
-
-        setProductos(productosConHistorico);
-
-        const predicciones = await Promise.all(
-          productosConHistorico.map(async (producto) => {
-            const datos = {
-              precioVenta: producto.precioVenta,
-              precioCompra: producto.precioCompra,
-              cantidadDisponible: producto.cantidadDisponible,
-              historico_ventas: producto.historico,
-              tiempo_en_mercado: calcularDiasEnMercado(producto.createdat),
-              categoria: producto.categoriaNombre,
-            };
-
-            try {
-              const prediccion = await predecirDemanda(datos);
-              const [categoriaMayor] = Object.entries(prediccion).reduce((a, b) =>
-                a[1] > b[1] ? a : b
-              );
-              return { id: producto.productoid, categoria: categoriaMayor };
-            } catch (e) {
-              console.error(`Error al predecir demanda del producto ${producto.nombre}:`, e);
-              return { id: producto.productoid, categoria: 'Error' };
-            }
-          })
-        );
-
-        const resultados = predicciones.reduce((acc, { id, categoria }) => {
-          acc[id] = categoria;
-          return acc;
-        }, {});
-
-        setDemandaPorProducto(resultados);
+        const data = await getAllProducts(token);
+        setProductos(data);
       } catch (error) {
-        console.error('Error al obtener productos o ventas:', error);
+        console.error('Error al obtener productos:', error);
       }
     };
-
     fetchProductos();
   }, []);
+
+  const handleSetSearch = (val) => {
+    setSearchTerm(val);
+    setPaginaActual(1);
+    localStorage.setItem("prodSearchTerm", val);
+    localStorage.setItem("prodCurrentPage", 1);
+  };
+
+  const handleSetCategory = (val) => {
+    setCategoriaFiltro(val);
+    setPaginaActual(1);
+    localStorage.setItem("prodCatFilter", val);
+    localStorage.setItem("prodCurrentPage", 1);
+  };
+
+  const handleSetPagina = (val) => {
+    setPaginaActual(val);
+    localStorage.setItem("prodCurrentPage", val);
+  };
 
   const formatFecha = (fecha) => {
     const f = new Date(fecha);
     const dia = String(f.getDate()).padStart(2, '0');
     const mes = String(f.getMonth() + 1).padStart(2, '0');
-    const año = f.getFullYear();
-    return `${dia}/${mes}/${año}`;
-  };
-
-  const calcularDiasEnMercado = (createdAt) => {
-    const fechaNormalizada = createdAt.split('.')[0].replace(' ', 'T');
-    const fechaCreacion = new Date(fechaNormalizada);
-    if (isNaN(fechaCreacion)) return 'Fecha inválida';
-
-    const hoy = new Date();
-    const inicio = new Date(fechaCreacion.toDateString());
-    const fin = new Date(hoy.toDateString());
-    const diferenciaMs = fin - inicio;
-    const dias = Math.floor(diferenciaMs / (1000 * 60 * 60 * 24));
-    return dias >= 0 ? dias : 0;
-  };
-
-  const capitalizarDemanda = (demanda) => {
-    if (!demanda) return '';
-    return demanda.charAt(0).toUpperCase() + demanda.slice(1);
+    return `${dia}/${mes}/${f.getFullYear()}`;
   };
 
   const categoriasUnicas = ['Todas', ...new Set(productos.map(p => p.categoriaNombre).filter(Boolean))];
 
-  const productosFiltrados = productos.filter((producto) => {
-    const coincideNombre = producto.nombre?.toLowerCase().includes(searchTerm.toLowerCase());
-    const coincideCategoria = categoriaFiltro === 'Todas' || producto.categoriaNombre === categoriaFiltro;
+  const productosFiltrados = productos.filter((p) => {
+    const coincideNombre = p.nombre?.toLowerCase().includes(searchTerm.toLowerCase());
+    const coincideCategoria = categoriaFiltro === 'Todas' || p.categoriaNombre === categoriaFiltro;
     return coincideNombre && coincideCategoria;
   });
 
   const totalPaginas = Math.ceil(productosFiltrados.length / productosPorPagina);
-  const productosPaginados = productosFiltrados.slice(
-    (paginaActual - 1) * productosPorPagina,
-    paginaActual * productosPorPagina
-  );
+  const inicio = (paginaActual - 1) * productosPorPagina;
+  const pagina = productosFiltrados.slice(inicio, inicio + productosPorPagina);
 
   return (
-    <div className="tabla-container">
-      <h3>Productos</h3>
-      <div className="filters-container">
-        <div>
-          <label htmlFor="buscar">Buscar:</label>
-          <input
-            id="buscar"
-            type="text"
-            placeholder="por nombre..."
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setPaginaActual(1);
-            }}
-            className="filter-input"
-          />
+    <div className="productos-main">
+      <div className="productos-header">
+        <div className="productos-header-left">
+          <ShoppingCart size={18} className="productos-header-icon" />
+          <h2 className="productos-titulo">Productos</h2>
+          <span className="productos-badge">{productos.length}</span>
         </div>
-
-        <div>
-          <label htmlFor="selectCategoria">Categorías:</label>
+        <div className="productos-header-right">
           <select
-            className="select-style"
-            id="selectCategoria"
+            className="productos-select"
             value={categoriaFiltro}
-            onChange={(e) => setCategoriaFiltro(e.target.value)}
+            onChange={(e) => handleSetCategory(e.target.value)}
           >
-            {categoriasUnicas.map((cat, idx) => (
-              <option key={idx} value={cat}>{cat}</option>
+            {categoriasUnicas.map((cat, i) => (
+              <option key={i} value={cat}>{cat}</option>
             ))}
           </select>
-        </div>
-
-        <div>
-          <label htmlFor="selectPaginas">Páginas a exportar:</label>
           <select
-            className="select-style"
-            id="selectPaginas"
+            className="productos-select"
             value={paginasAExportar}
             onChange={(e) => setPaginasAExportar(Number(e.target.value))}
           >
-            {Array.from({ length: totalPaginas }, (_, i) => (
-              <option key={i + 1} value={i + 1}>{i + 1}</option>
+            {Array.from({ length: totalPaginas || 1 }, (_, i) => (
+              <option key={i + 1} value={i + 1}>{i + 1} pág.</option>
             ))}
           </select>
+          <button
+            className="productos-btn-exportar"
+            onClick={() => exportarProductosPorPaginas(productosFiltrados.slice(0, paginasAExportar * productosPorPagina))}
+          >
+            <FileSpreadsheet size={14} />
+            <span>Exportar Excel</span>
+          </button>
         </div>
-
-        <button
-          onClick={() => {
-            const productosParaExportar = productosFiltrados.slice(0, paginasAExportar * productosPorPagina);
-            exportarProductosPorPaginas(productosParaExportar, demandaPorProducto);
-          }}
-          className="btn-exportar"
-        >
-          Exportar Excel
-        </button>
       </div>
 
-
-
-      <table className="tabla-productos">
-        <FiltroProductos
-          productosFiltrados={productosFiltrados}
-          setProductos={setProductos}
-          orden={orden}
-          setOrden={setOrden}
-          demandaPorProducto={demandaPorProducto}
+      <div className="productos-search-wrap">
+        <Search size={14} className="productos-search-icon" />
+        <input
+          type="text"
+          className="productos-search"
+          placeholder="Buscar productos..."
+          value={searchTerm}
+          onChange={(e) => handleSetSearch(e.target.value)}
         />
-        <tbody>
-          {productosPaginados.length > 0 ? (
-            productosPaginados.map((producto) => (
-              <tr key={producto.productoid}>
-                <td>{formatFecha(producto.createdat)}</td>
-                <td>{producto.nombre}</td>
-                <td>{producto.descripcion}</td>
-                <td>{producto.categoriaNombre}</td>
-                <td>{producto.cantidadDisponible}</td>
-                <td>${Number(producto.precioCompra).toLocaleString('es-CO')}</td>
-                <td>${Number(producto.precioVenta).toLocaleString('es-CO')}</td>
-                <td>{producto.historico}</td>
-                <td>{calcularDiasEnMercado(producto.createdat)} días</td>
-                <td>{capitalizarDemanda(demandaPorProducto[producto.productoid] || 'Cargando...')}</td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="10">No hay productos disponibles.</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      <div className="paginacion">
-        <button
-          onClick={() => setPaginaActual(paginaActual - 1)}
-          disabled={paginaActual === 1}
-        >
-          Anterior
-        </button>
-        <span>
-          Página {paginaActual} de {totalPaginas}
-        </span>
-        <button
-          onClick={() => setPaginaActual(paginaActual + 1)}
-          disabled={paginaActual === totalPaginas}
-        >
-          Siguiente
-        </button>
       </div>
+
+      <div className="productos-table-wrap">
+        <table className="productos-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th>Categoría</th>
+              <th>Stock</th>
+              <th>Compra</th>
+              <th>Venta</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pagina.length > 0 ? pagina.map((p) => (
+              <tr key={p.productoid}>
+                <td>{formatFecha(p.createdat)}</td>
+                <td className="productos-td-nombre">{p.nombre}</td>
+                <td>{p.descripcion}</td>
+                <td>{p.categoriaNombre}</td>
+                <td>{p.cantidadDisponible}</td>
+                <td>${Number(p.precioCompra).toLocaleString('es-CO')}</td>
+                <td>${Number(p.precioVenta).toLocaleString('es-CO')}</td>
+              </tr>
+            )) : (
+              <tr>
+                <td colSpan="7" className="productos-empty">
+                  <ShoppingCart size={28} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
+                  <p>No se encontraron productos</p>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {totalPaginas > 1 && (
+        <div className="productos-paginacion">
+          <button onClick={() => handleSetPagina(paginaActual - 1)} disabled={paginaActual === 1}>Anterior</button>
+          <span>Página {paginaActual} de {totalPaginas}</span>
+          <button onClick={() => handleSetPagina(paginaActual + 1)} disabled={paginaActual === totalPaginas}>Siguiente</button>
+        </div>
+      )}
     </div>
   );
 };

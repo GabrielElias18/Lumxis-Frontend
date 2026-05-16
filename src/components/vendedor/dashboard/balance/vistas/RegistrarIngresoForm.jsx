@@ -1,259 +1,339 @@
-import React, { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { X, DollarSign, Package, AlertCircle } from 'lucide-react';
+import { useEffect, useState, useMemo } from "react";
+import { X, Search, ShoppingCart, Trash2, Plus, Minus, AlertCircle, CheckCircle2, ArrowLeft, FileText } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { getCategoriesByUser } from "../../../../../services/categoryServices";
 import { getAllProducts } from "../../../../../services/productServices";
-import { createVenta } from "../../../../../services/ventaService";
-import "./styles/RegistrarIngresoForm.css";
+import { createVentaBatch } from "../../../../../services/ventaService";
+import { getClientes } from "../../../../../services/clienteService";
+import "./styles/CartStyles.css";
 
-const RegistrarIngresoForm = ({ cerrarFormulario }) => {
-  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm();
-  const [categoriasConProductos, setCategoriasConProductos] = useState([]);
-  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+const RegistrarIngresoForm = () => {
+  const navigate = useNavigate();
+  const [productos, setProductos] = useState([]);
+  const [categorias, setCategorias] = useState([]);
+  const [clientes, setClientes] = useState([]);
+  const [clienteId, setClienteId] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [carrito, setCarrito] = useState([]);
+  const [busqueda, setBusqueda] = useState("");
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("");
   const [cargando, setCargando] = useState(false);
+  const [procesando, setProcesando] = useState(false);
 
   useEffect(() => {
     const cargarDatos = async () => {
       try {
+        setCargando(true);
         const token = localStorage.getItem("token");
-        const categoriasData = await getCategoriesByUser(token);
-        const productosData = await getAllProducts(token);
-  
-        if (!Array.isArray(categoriasData) || !Array.isArray(productosData)) {
-          console.error("Los datos de la API no son un array");
-          return;
-        }
-  
-        // Crear un mapa indexado por categoriaid
-        const categoriasMap = categoriasData.reduce((acc, categoria) => {
-          acc[categoria.categoriaid] = { ...categoria, productos: [] };
-          return acc;
-        }, {});
-  
-        // Asignar productos a su categoría correspondiente usando categoriaid
-        productosData.forEach((producto) => {
-          if (categoriasMap[producto.categoriaid]) {
-            categoriasMap[producto.categoriaid].productos.push(producto);
-          }
-        });
-  
-        setCategoriasConProductos(Object.values(categoriasMap));
+        const [categoriasData, productosData, clientesData] = await Promise.all([
+          getCategoriesByUser(token),
+          getAllProducts(token),
+          getClientes(token)
+        ]);
+        if (Array.isArray(categoriasData)) setCategorias(categoriasData);
+        if (Array.isArray(productosData)) setProductos(productosData);
+        if (Array.isArray(clientesData)) setClientes(clientesData);
       } catch (error) {
         console.error("Error al cargar datos:", error);
-        await Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Error al cargar los datos",
-          confirmButtonColor: "#3085d6",
-        });
+        Swal.fire({ icon: "error", title: "Error", text: "No se pudieron cargar los productos" });
+      } finally {
+        setCargando(false);
       }
     };
-  
     cargarDatos();
   }, []);
-  
 
-  const productoIdSeleccionado = watch("productoId");
+  const productosFiltrados = useMemo(() => {
+    return productos.filter(p => {
+      const coincideBusqueda = p.nombre.toLowerCase().includes(busqueda.toLowerCase());
+      const coincideCategoria = categoriaSeleccionada ? String(p.categoriaid) === String(categoriaSeleccionada) : true;
+      return coincideBusqueda && coincideCategoria;
+    });
+  }, [productos, busqueda, categoriaSeleccionada]);
 
-  useEffect(() => {
-    if (productoIdSeleccionado && categoriasConProductos.length > 0) {
-      const productoEncontrado = categoriasConProductos
-        .flatMap((cat) => cat.productos)
-        .find((prod) => String(prod.productoid) === String(productoIdSeleccionado));
-  
-      setProductoSeleccionado(productoEncontrado || null);
-    }
-  }, [productoIdSeleccionado, categoriasConProductos]);
+  const agregarAlCarrito = (producto) => {
+    if (producto.cantidadDisponible <= 0) return;
 
-  const formatoCOP = new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
-  
-  
+    setCarrito(prev => {
+      const itemExistente = prev.find(item => item.productoid === producto.productoid);
+      if (itemExistente) {
+        if (itemExistente.cantidad < producto.cantidadDisponible) {
+          return prev.map(item =>
+            item.productoid === producto.productoid
+              ? { ...item, cantidad: item.cantidad + 1 }
+              : item
+          );
+        }
+        return prev;
+      }
+      return [...prev, { ...producto, cantidad: 1 }];
+    });
+  };
 
-  const onSubmit = async (data) => {
+  const actualizarCantidad = (id, delta) => {
+    setCarrito(prev => prev.map(item => {
+      if (item.productoid === id) {
+        const nuevaCantidad = item.cantidad + delta;
+        if (nuevaCantidad > 0 && nuevaCantidad <= item.cantidadDisponible) {
+          return { ...item, cantidad: nuevaCantidad };
+        }
+      }
+      return item;
+    }));
+  };
+
+  const setCantidadDirecta = (id, valor) => {
+    const num = parseInt(valor, 10);
+    if (isNaN(num)) return;
+    setCarrito(prev => prev.map(item => {
+      if (item.productoid === id) {
+        const clamped = Math.min(Math.max(1, num), item.cantidadDisponible);
+        return { ...item, cantidad: clamped };
+      }
+      return item;
+    }));
+  };
+
+  const eliminarDelCarrito = (id) => {
+    setCarrito(prev => prev.filter(item => item.productoid !== id));
+  };
+
+  const totalCarrito = carrito.reduce((sum, item) => sum + (item.precioVenta * item.cantidad), 0);
+
+  const finalizarVenta = async () => {
+    if (carrito.length === 0) return;
     try {
-      setCargando(true);
+      setProcesando(true);
       const token = localStorage.getItem("token");
-
-      if (!productoSeleccionado) {
-        throw new Error("Producto no encontrado");
-      }
-
-      if (productoSeleccionado.cantidadDisponible < data.cantidad) {
-        await Swal.fire({
-          icon: "error",
-          title: "Stock Insuficiente",
-          text: `Solo hay ${productoSeleccionado.cantidadDisponible} unidades disponibles de ${productoSeleccionado.nombre}`,
-          confirmButtonColor: "#3085d6",
-          confirmButtonText: "Entendido",
-        });
-        return;
-      }
-
-      const ventaData = {
-        productoid: productoIdSeleccionado.productoId,
-        productoNombre: productoSeleccionado.nombre,
-        cantidad: Number(data.cantidad),
-        descripcion: data.descripcion || "",
-      };
-
-      await createVenta(ventaData, token);
-
-      const total = productoSeleccionado.precioVenta * data.cantidad;
-
-      // Formatear precios sin decimales
-      const formatoCOP = new Intl.NumberFormat("es-CO", {
-        style: "currency",
-        currency: "COP",
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      });
-
+      const items = carrito.map(item => ({
+        productoNombre: item.nombre,
+        cantidad: item.cantidad,
+      }));
+      await createVentaBatch(items, clienteId || null, token, descripcion);
       await Swal.fire({
         icon: "success",
-        title: "¡Venta Exitosa!",
-        html: `
-          <div class="venta-resumen">
-            <p><strong>${data.cantidad}</strong> unidades de <strong>${productoSeleccionado.nombre}</strong></p>
-            <p>Precio de venta: ${formatoCOP.format(productoSeleccionado.precioVenta)}</p>
-            <p class="total">Total: ${formatoCOP.format(total)}</p>
-          </div>
-        `,
-
-        showConfirmButton: true,
-        confirmButtonText: "Aceptar",
-        confirmButtonColor: "#3085d6",
-        timer: 3000,
-        timerProgressBar: true,
-        position: "center",
-      }).then(() => {
-        window.location.reload();
+        title: "¡Venta Completada!",
+        text: `${carrito.reduce((s, i) => s + i.cantidad, 0)} unidades registradas correctamente.`,
+        timer: 2000,
+        showConfirmButton: false
       });
-
-      reset();
-      cerrarFormulario();
+      navigate("/dashboard/balance");
     } catch (error) {
-      await Swal.fire({
-        icon: "error",
-        title: "Error en la Venta",
-        text: error.response?.data?.mensaje || "Error al registrar la venta",
-        confirmButtonColor: "#3085d6",
-        confirmButtonText: "Cerrar",
-      });
+      console.error("Error al procesar la venta:", error);
+      Swal.fire({ icon: "error", title: "Error", text: error?.mensaje || "Ocurrió un problema al registrar la venta" });
     } finally {
-      setCargando(false);
+      setProcesando(false);
     }
   };
 
+  const formatoMoneda = (valor) =>
+    new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(valor);
+
   return (
-    <div className="fondo-modal" onClick={cerrarFormulario}>
-      <div className="ventana-flotante" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="titulo">Registrar Venta</h2>
-          <button className="cerrar-modal" onClick={cerrarFormulario}>
-            <X size={20} />
-          </button>
+    <div className="cart-page-container">
+      <div className="cart-modal-container full-page">
+        <div className="cart-modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button className="back-button" onClick={() => navigate("/dashboard/balance")}>
+              <ArrowLeft size={20} />
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <ShoppingCart size={24} style={{ color: 'var(--color-primary)' }} />
+              <h2>Nueva Venta</h2>
+            </div>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="formulario">
-          <div className="form-group">
-            <label className="label">Producto:</label>
-            <select
-              {...register("productoId", { required: "El producto es obligatorio" })}
-              className="select"
-            >
-              <option value="">Seleccione un producto</option>
-              {categoriasConProductos.map((categoria) => (
-                <optgroup key={categoria.categoriaid} label={categoria.nombre}>
-                  {categoria.productos.length > 0 ? (
-                    categoria.productos.map((producto) => (
-                      <option key={producto.productoid} value={producto.productoid}>
-                        {producto.nombre} - Stock: {producto.cantidadDisponible}
-                      </option>
-                    ))
-                  ) : (
-                    <option disabled>No hay productos</option>
-                  )}
-                </optgroup>
-              ))}
-            </select>
-            {errors.productoId && (
-              <p className="error">
-                <AlertCircle size={16} />
-                {errors.productoId.message}
-              </p>
-            )}
-          </div>
-
-          {productoSeleccionado && (
-            <div className="info-producto">
-              <h3>Información del Producto</h3>
-              <p>
-                <span>Precio de venta:</span>
-                <strong>{formatoCOP.format(productoSeleccionado.precioVenta)}</strong>
-              </p>
-              <p>
-                <span>Stock disponible:</span>
-                <strong>{productoSeleccionado.cantidadDisponible} unidades</strong>
-              </p>
+        <div className="cart-main-content">
+          {/* LEFT: Product selection */}
+          <div className="product-selection-panel">
+            <div className="search-filter-bar">
+              <div className="search-input-wrapper">
+                <Search className="search-icon" size={18} />
+                <input
+                  type="text"
+                  placeholder="Buscar producto..."
+                  value={busqueda}
+                  onChange={e => setBusqueda(e.target.value)}
+                />
+              </div>
+              <select
+                className="category-select"
+                value={categoriaSeleccionada}
+                onChange={e => setCategoriaSeleccionada(e.target.value)}
+              >
+                <option value="">Todas las categorías</option>
+                {categorias.map(cat => (
+                  <option key={cat.categoriaid} value={cat.categoriaid}>{cat.nombre}</option>
+                ))}
+              </select>
             </div>
-          )}
 
-
-          <div className="form-group">
-            <label className="label">Cantidad:</label>
-            <input
-              type="number"
-              {...register("cantidad", {
-                required: "Ingrese una cantidad",
-                min: { value: 1, message: "La cantidad debe ser mayor a 0" },
-              })}
-              className="input"
-            />
-            {errors.cantidad && (
-              <p className="error">
-                <AlertCircle size={16} />
-                {errors.cantidad.message}
-              </p>
+            {cargando ? (
+              <div className="empty-cart-state">
+                <div className="loader-spinner" style={{ borderTopColor: 'var(--color-primary)' }}></div>
+                <p>Cargando productos...</p>
+              </div>
+            ) : productosFiltrados.length > 0 ? (
+              <div className="productos-container-cart">
+                {productosFiltrados.map(p => {
+                  const agotado = p.cantidadDisponible <= 0;
+                  return (
+                    <div
+                      key={p.productoid}
+                      className={`producto-card ${agotado ? 'producto-card-agotado' : ''}`}
+                      onClick={() => !agotado && agregarAlCarrito(p)}
+                    >
+                      <div className="producto-imagen-container">
+                        <img
+                          src={p.imagenes && p.imagenes.length > 0
+                            ? (p.imagenes[0].startsWith("http") ? p.imagenes[0] : `${API_URL}/uploads/${p.imagenes[0]}`)
+                            : "/images/default-product.png"}
+                          alt={p.nombre}
+                          className="producto-imagen"
+                          onError={(e) => e.target.src = "/images/default-product.png"}
+                        />
+                        {agotado ? (
+                          <div className="stock-badge-cart stock-out-cart">Agotado</div>
+                        ) : (
+                          <div className={`stock-badge-cart ${p.cantidadDisponible < 5 ? 'stock-low-cart' : ''}`}>
+                            Stock: {p.cantidadDisponible}
+                          </div>
+                        )}
+                      </div>
+                      <div className="product-info">
+                        <h3 className="producto-nombre">{p.nombre}</h3>
+                        {p.categoriaNombre && <span className="product-category">{p.categoriaNombre}</span>}
+                        <span className="producto-precio-cart">{formatoMoneda(p.precioVenta)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="empty-cart-state">
+                <AlertCircle size={48} />
+                <p>No se encontraron productos</p>
+              </div>
             )}
           </div>
 
-          <div className="form-group">
-            <label className="label">Descripción:</label>
-            <textarea
-              {...register("descripcion", { required: "La descripción es obligatoria" })}
-              className="textarea"
-              placeholder="Ingrese una descripción de la venta"
-            ></textarea>
-            {errors.descripcion && (
-              <p className="error">
-                <AlertCircle size={16} />
-                {errors.descripcion.message}
-              </p>
-            )}
-          </div>
+          {/* RIGHT: Cart summary */}
+          <div className="cart-summary-panel">
+            <div className="cart-title">
+              <ShoppingCart size={20} />
+              Carrito de Venta
+            </div>
 
-          <div className="botones-formulario">
-            <button type="submit" className="boton boton-primario" disabled={cargando}>
-              {cargando ? (
-                <>
-                  <span className="cargando"></span>
-                  <span>Registrando...</span>
-                </>
+            <div className="client-selection-cart">
+              <label>Cliente (Opcional)</label>
+              <select
+                value={clienteId}
+                onChange={(e) => setClienteId(e.target.value)}
+                className="cart-select-input"
+              >
+                <option value="">Consumidor Final / General</option>
+                {clientes.map(c => (
+                  <option key={c.clienteid} value={c.clienteid}>{c.nombreCliente}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="cart-notes-section">
+              <label><FileText size={11} /> Notas (Opcional)</label>
+              <textarea
+                className="cart-notes-input"
+                placeholder="Descripción o referencia de la venta..."
+                value={descripcion}
+                onChange={e => setDescripcion(e.target.value)}
+                rows={2}
+              />
+            </div>
+
+            <div className="cart-items-list">
+              {carrito.length === 0 ? (
+                <div className="empty-cart-state">
+                  <ShoppingCart size={40} strokeWidth={1.5} />
+                  <p>El carrito está vacío.<br />Selecciona productos a la izquierda.</p>
+                </div>
               ) : (
-                <>
-                  <DollarSign size={18} />
-                  <span>Registrar Venta</span>
-                </>
+                carrito.map(item => (
+                  <div key={item.productoid} className="cart-item">
+                    <img
+                      src={item.imagenes && item.imagenes.length > 0
+                        ? (item.imagenes[0].startsWith("http") ? item.imagenes[0] : `${API_URL}/uploads/${item.imagenes[0]}`)
+                        : "/images/default-product.png"}
+                      className="cart-item-image"
+                      alt={item.nombre}
+                    />
+                    <div className="cart-item-details">
+                      <span className="cart-item-name">{item.nombre}</span>
+                      <span className="cart-item-price">{formatoMoneda(item.precioVenta * item.cantidad)}</span>
+                    </div>
+                    <div className="cart-item-actions">
+                      <Trash2
+                        size={16}
+                        className="remove-item"
+                        onClick={() => eliminarDelCarrito(item.productoid)}
+                      />
+                      <div className="quantity-controls">
+                        <button
+                          className="qty-btn"
+                          onClick={() => actualizarCantidad(item.productoid, -1)}
+                          disabled={item.cantidad <= 1}
+                        >
+                          <Minus size={12} />
+                        </button>
+                        <input
+                          className="qty-input"
+                          type="number"
+                          min={1}
+                          max={item.cantidadDisponible}
+                          value={item.cantidad}
+                          onChange={e => setCantidadDirecta(item.productoid, e.target.value)}
+                        />
+                        <button
+                          className="qty-btn"
+                          onClick={() => actualizarCantidad(item.productoid, 1)}
+                          disabled={item.cantidad >= item.cantidadDisponible}
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
               )}
-            </button>
+            </div>
+
+            <div className="cart-footer">
+              <div className="cart-total-row">
+                <span className="total-label">Total a pagar</span>
+                <span className="total-amount">{formatoMoneda(totalCarrito)}</span>
+              </div>
+              <button
+                className={`checkout-button ${procesando ? 'loading' : ''}`}
+                disabled={carrito.length === 0 || procesando}
+                onClick={finalizarVenta}
+              >
+                {procesando ? (
+                  <>
+                    <div className="loader-spinner"></div>
+                    <span>Procesando...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={20} />
+                    <span>Registrar Venta</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

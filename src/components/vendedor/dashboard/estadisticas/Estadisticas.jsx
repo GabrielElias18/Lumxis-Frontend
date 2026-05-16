@@ -1,207 +1,258 @@
-import React, { useEffect, useState } from 'react';
-import { Bar, Line } from 'react-chartjs-2';
-import 'chart.js/auto';
-import { getVentas } from '../../../../services/ventaService';
-import { getEgresos } from '../../../../services/egresoService';
+import { useEffect, useState } from 'react';
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  BarChart, Bar, Cell, PieChart, Pie, Legend
+} from 'recharts';
+import { 
+  TrendingUp, TrendingDown, DollarSign, ShoppingBag, 
+  BarChart2, Activity, PieChart as PieIcon
+} from 'lucide-react';
+import { getDashboardStats } from '../../../../services/statsService';
 import './Estadisticas.css';
 
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="custom-tooltip">
+        <span className="tooltip-label">{label}</span>
+        {payload.map((entry, index) => (
+          <div key={index} className="tooltip-item" style={{ color: entry.color }}>
+            {entry.name}: {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(entry.value)}
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
 function Estadisticas() {
-  const [ventas, setVentas] = useState([]);
-  const [egresos, setEgresos] = useState([]);
-  const [topProductSalesData, setTopProductSalesData] = useState(null);
-  const [monthlyBalanceData, setMonthlyBalanceData] = useState(null);
-  const [selectedYear, setSelectedYear] = useState(null);
-  const [availableYears, setAvailableYears] = useState([]);
+  const [data, setData] = useState(null);
+  const [cargando, setCargando] = useState(true);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 4 }, (_, i) => currentYear - i);
 
-  // 🔹 Cargar datos de ventas y egresos al montar el componente
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchStats = async () => {
       try {
+        setCargando(true);
         const token = localStorage.getItem('token');
-        if (!token) {
-          console.error('No hay token disponible.');
-          return;
-        }
-
-        const [ventasData, egresosData] = await Promise.all([
-          getVentas(token),
-          getEgresos(token),
-        ]);
-
-        if (!Array.isArray(ventasData) || !Array.isArray(egresosData)) {
-          console.error('Datos no válidos recibidos.');
-          return;
-        }
-
-        setVentas(ventasData);
-        setEgresos(egresosData);
-
-        // 🔹 Extraer años disponibles desde los datos
-        const yearsSet = new Set([
-          ...ventasData.map(v => new Date(v.createdAt).getFullYear()),
-          ...egresosData.map(e => new Date(e.createdAt).getFullYear()),
-        ]);
-
-        const years = [...yearsSet].sort();
-        setAvailableYears(years);
-        setSelectedYear(years.length > 0 ? years[years.length - 1] : null);
+        const stats = await getDashboardStats(token, selectedYear);
+        setData(stats);
       } catch (error) {
-        console.error('Error al obtener los datos:', error);
+        console.error('Error al cargar estadísticas:', error);
+      } finally {
+        setCargando(false);
       }
     };
+    fetchStats();
+  }, [selectedYear]);
 
-    fetchData();
-  }, []);
+  // Colores alineados al proyecto: Azul Primario, Esmeralda, Ámbar, Rojo, Indigo
+  const COLORS = ['#1565C0', '#059669', '#D97706', '#DC2626', '#6366F1'];
 
-  // 🔹 Calcular balance mensual cuando cambie `selectedYear`
-  useEffect(() => {
-    if (!selectedYear) return;
+  const formatCurrency = (val) => 
+    new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
 
-    const ingresosPorMes = {};
-    const egresosPorMes = {};
-
-    // Procesar ventas
-    ventas.forEach(venta => {
-      if (!venta.createdAt) return;
-      const fecha = new Date(venta.createdAt);
-      const year = fecha.getFullYear();
-      const mes = `${year}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
-
-      if (year === parseInt(selectedYear)) {
-        ingresosPorMes[mes] = (ingresosPorMes[mes] || 0) + Number(venta.total || 0);
-      }
-    });
-
-    // Procesar egresos
-    egresos.forEach(egreso => {
-      if (!egreso.createdAt) return;
-      const fecha = new Date(egreso.createdAt);
-      const year = fecha.getFullYear();
-      const mes = `${year}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
-
-      if (year === parseInt(selectedYear)) {
-        egresosPorMes[mes] = (egresosPorMes[mes] || 0) + Number(egreso.total || 0);
-      }
-    });
-
-    // Generar meses del año completo
-    const allMonths = Array.from({ length: 12 }, (_, i) => {
-      const mes = String(i + 1).padStart(2, '0');
-      return `${selectedYear}-${mes}`;
-    });
-
-    // Calcular balance mensual
-    const balanceMensual = allMonths.map(mes =>
-      (Number(ingresosPorMes[mes]) || 0) - (Number(egresosPorMes[mes]) || 0)
+  if (cargando) {
+    return (
+      <div className="stats-content">
+        <div className="innovative-empty">
+          <div className="loader-spinner" style={{ borderTopColor: 'var(--color-primary)' }}></div>
+          <p style={{ marginTop: '1rem', fontWeight: '600', color: 'var(--neutral-500)' }}>Cargando inteligencia de datos...</p>
+        </div>
+      </div>
     );
+  }
 
-    setMonthlyBalanceData({
-      labels: allMonths,
-      datasets: [
-        {
-          label: `Balance Mensual (${selectedYear})`,
-          data: balanceMensual,
-          borderColor: 'rgba(75, 192, 192, 1)',
-          backgroundColor: 'rgba(75, 192, 192, 0.2)',
-          borderWidth: 2,
-          pointRadius: 5,
-          pointHoverRadius: 7,
-          fill: false,
-          tension: 0.3,
-        },
-      ],
-    });
-  }, [selectedYear, ventas, egresos]);
-
-  // 🔹 Procesar TOP 15 productos más vendidos filtrados por año
-  useEffect(() => {
-    if (ventas.length === 0 || !selectedYear) return;
-
-    const ventasFiltradas = ventas.filter(venta => {
-      const fecha = new Date(venta.createdAt);
-      return fecha.getFullYear() === parseInt(selectedYear);
-    });
-
-    const unidadesVendidasPorProducto = ventasFiltradas.reduce((acc, venta) => {
-      acc[venta.productoNombre] = (acc[venta.productoNombre] || 0) + venta.cantidad;
-      return acc;
-    }, {});
-
-    const sortedProducts = Object.entries(unidadesVendidasPorProducto)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 15);
-
-    setTopProductSalesData({
-      labels: sortedProducts.map(([nombre]) => nombre),
-      datasets: [
-        {
-          label: `Cantidad de Unidades Vendidas en ${selectedYear}`,
-          data: sortedProducts.map(([, cantidad]) => cantidad),
-          backgroundColor: sortedProducts.map(() =>
-            `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.5)`
-          ),
-          borderWidth: 1,
-        },
-      ],
-    });
-  }, [ventas, selectedYear]);
-
-  if (!topProductSalesData || !monthlyBalanceData) {
-    return <p>Cargando datos...</p>;
+  if (!data || (data.kpis.totalIngresos === 0 && data.kpis.totalEgresos === 0)) {
+    return (
+      <div className="stats-content">
+        <div className="stats-header">
+          <h1>Estadísticas</h1>
+          <select className="year-selector" value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </div>
+        <div className="innovative-empty">
+          <div className="empty-icon-box">
+            <Activity size={40} color="var(--neutral-400)" />
+          </div>
+          <h2>Sin movimientos detectados en {selectedYear}</h2>
+          <p>No se encontraron registros de ventas ni egresos vinculados a este periodo.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="stats-content">
-      <div className="chartContainer">
-        <h2>BALANCE MENSUAL</h2>
-        <select onChange={(e) => setSelectedYear(e.target.value)} value={selectedYear}>
-          {availableYears.map(year => (
-            <option key={year} value={year}>{year}</option>
-          ))}
+      <div className="stats-header">
+        <h1>Dashboard de Estadísticas</h1>
+        <select className="year-selector" value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
+          {years.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
-
-        <Line
-          data={monthlyBalanceData}
-          options={{
-            scales: {
-              y: {
-                beginAtZero: false,
-                suggestedMin: Math.min(...monthlyBalanceData.datasets[0].data) - 1000,
-                suggestedMax: Math.max(...monthlyBalanceData.datasets[0].data) + 1000,
-              },
-            },
-            plugins: {
-              tooltip: {
-                position: 'nearest',
-                callbacks: {
-                  label: (context) =>
-                    `Balance: ${new Intl.NumberFormat('es-CO', {
-                      style: 'currency',
-                      currency: 'COP',
-                    }).format(context.raw)}`,
-                },
-              },
-            },
-          }}
-        />
       </div>
 
-      <div className="chartContainer">
-        <h2>TOP 15 PRODUCTOS MÁS VENDIDOS</h2>
-        <Bar
-          data={topProductSalesData}
-          options={{
-            indexAxis: 'y',
-            plugins: {
-              tooltip: {
-                position: 'nearest',
-                callbacks: {
-                  label: (context) => `Unidades: ${context.raw}`,
-                },
-              },
-            },
-          }}
-        />
+      {/* KPI Cards */}
+      <div className="kpi-grid">
+        <div className="kpi-card">
+          <div className="kpi-icon-container income">
+            <TrendingUp size={24} />
+          </div>
+          <div className="kpi-body">
+            <h3>Ingresos</h3>
+            <p className="kpi-value">{formatCurrency(data.kpis.totalIngresos)}</p>
+          </div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-icon-container expense">
+            <TrendingDown size={24} />
+          </div>
+          <div className="kpi-body">
+            <h3>Egresos</h3>
+            <p className="kpi-value">{formatCurrency(data.kpis.totalEgresos)}</p>
+          </div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-icon-container profit">
+            <DollarSign size={24} />
+          </div>
+          <div className="kpi-body">
+            <h3>Balance</h3>
+            <p className="kpi-value" style={{ color: data.kpis.balance >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+              {formatCurrency(data.kpis.balance)}
+            </p>
+          </div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-icon-container orders">
+            <ShoppingBag size={24} />
+          </div>
+          <div className="kpi-body">
+            <h3>Transacciones</h3>
+            <p className="kpi-value">{data.kpis.totalVentasCount}</p>
+          </div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-icon-container margin">
+            <Activity size={24} />
+          </div>
+          <div className="kpi-body">
+            <h3>Margen</h3>
+            <p className="kpi-value" style={{ color: data.kpis.totalIngresos > 0 && data.kpis.balance >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+              {data.kpis.totalIngresos > 0
+                ? `${((data.kpis.balance / data.kpis.totalIngresos) * 100).toFixed(1)}%`
+                : '—'}
+            </p>
+          </div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-icon-container ticket">
+            <BarChart2 size={24} />
+          </div>
+          <div className="kpi-body">
+            <h3>Ticket Promedio</h3>
+            <p className="kpi-value">
+              {data.kpis.totalVentasCount > 0
+                ? formatCurrency(data.kpis.totalIngresos / data.kpis.totalVentasCount)
+                : '—'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="charts-layout">
+        <div className="dashboard-card">
+          <div className="card-title-area">
+            <h2>Flujo de Caja Mensual</h2>
+          </div>
+          <div className="chart-wrapper">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data.monthlyFlow} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorIngresos" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-success)" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="var(--color-success)" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorGastos" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-danger)" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="var(--color-danger)" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 12}} dy={10} />
+                <YAxis hide />
+                <Tooltip content={<CustomTooltip />} />
+                <Area 
+                  type="monotone" 
+                  dataKey="Ingresos" 
+                  stroke="var(--color-success)" 
+                  strokeWidth={2.5}
+                  fillOpacity={1} 
+                  fill="url(#colorIngresos)" 
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="Gastos" 
+                  stroke="var(--color-danger)" 
+                  strokeWidth={2.5}
+                  fillOpacity={1} 
+                  fill="url(#colorGastos)" 
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="dashboard-card">
+          <div className="card-title-area">
+            <h2>Categorías Populares</h2>
+          </div>
+          <div className="chart-wrapper">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data.categoryData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={65}
+                  outerRadius={85}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {data.categoryData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      <div className="dashboard-card">
+        <div className="card-title-area">
+          <h2>Ranking de Productos</h2>
+        </div>
+        <div className="chart-wrapper" style={{ height: '260px' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data.topProducts} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748B', fontSize: 12}} />
+              <YAxis hide />
+              <Tooltip cursor={{fill: '#F8FAF9'}} />
+              <Bar dataKey="value" fill="var(--color-primary)" radius={[6, 6, 0, 0]} barSize={40} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );

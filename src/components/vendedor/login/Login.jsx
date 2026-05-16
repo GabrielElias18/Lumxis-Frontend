@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Home } from 'lucide-react';
+import { Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { loginUser } from '../../../services/authServices';
 import Swal from 'sweetalert2';

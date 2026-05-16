@@ -1,78 +1,56 @@
-import axios from 'axios';
+import axiosInstance from '../api/axiosConfig';
 
-const API_URL = 'https://ordereasy-backend-533n.onrender.com/api/productos'; // Cambia la URL si es necesario
-
-// Crear un producto
 export const createProduct = async (producto, token) => {
   try {
-    const response = await axios.post(
-      API_URL,
-      producto,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const response = await axiosInstance.post('/api/productos', producto, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     return response.data;
   } catch (error) {
     throw error.response?.data || { mensaje: 'Error al crear el producto.' };
   }
 };
 
-
-// Obtener todos los productos de un usuario
 export const getAllProducts = async (token) => {
   try {
-    const response = await axios.get(`${API_URL}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const response = await axiosInstance.get('/api/productos', {
+      headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
   } catch (error) {
-    throw error.response?.data || error.message;
+    throw error.response?.data || { mensaje: 'Error al obtener los productos.' };
   }
 };
 
-// Obtener un producto por su ID
 export const getProductById = async (id, token) => {
   try {
-    const response = await axios.get(`${API_URL}/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const response = await axiosInstance.get(`/api/productos/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
   } catch (error) {
-    throw error.response?.data || error.message;
+    throw error.response?.data || { mensaje: 'Error al obtener el producto.' };
   }
 };
 
-// Actualizar un producto
 export const updateProduct = async (id, updatedProduct, token) => {
   try {
-    const response = await axios.put(`${API_URL}/${id}`, updatedProduct, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const response = await axiosInstance.put(`/api/productos/${id}`, updatedProduct, {
+      headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
   } catch (error) {
-    throw error.response?.data || error.message;
+    throw error.response?.data || { mensaje: 'Error al actualizar el producto.' };
   }
 };
 
-// Eliminar un producto
 export const deleteProduct = async (id, token) => {
   try {
-    const response = await axios.delete(`${API_URL}/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const response = await axiosInstance.delete(`/api/productos/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
   } catch (error) {
-    throw error.response?.data || error.message;
+    throw error.response?.data || { mensaje: 'Error al eliminar el producto.' };
   }
 };

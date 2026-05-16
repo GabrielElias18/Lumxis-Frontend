@@ -1,78 +1,91 @@
 import React, { useState } from 'react';
-import Swal from 'sweetalert2'; // Importa SweetAlert2
+import { X, Tag } from 'lucide-react';
+import Swal from 'sweetalert2';
 import './styles/CrearCategoriaForm.css';
-import { createCategory } from '../../../../../services/categoryServices'; // Importa el servicio
+import { createCategory } from '../../../../../services/categoryServices';
 
 function CrearCategoriaForm({ isVisible, onClose }) {
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
+  const [cargando, setCargando] = useState(false);
 
   if (!isVisible) return null;
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-
+    setCargando(true);
     try {
-      const token = localStorage.getItem('token'); // Obtiene el token
-      const nuevaCategoria = { nombre, descripcion };
-
-      await createCategory(nuevaCategoria, token);
-
-      // Muestra la alerta de éxito
+      const token = localStorage.getItem('token');
+      await createCategory({ nombre, descripcion }, token);
       Swal.fire({
-        title: '¡Éxito!',
-        text: 'Categoría creada satisfactoriamente.',
+        title: '¡Categoría creada!',
+        text: 'La categoría se registró correctamente.',
         icon: 'success',
         confirmButtonText: 'OK',
-      }).then(() => {
-        window.location.reload(); // Recarga la página después de la alerta
-      });
-
+        confirmButtonColor: '#1565C0',
+        timer: 2000,
+        showConfirmButton: false,
+      }).then(() => window.location.reload());
       setNombre('');
       setDescripcion('');
-      onClose(); // Cierra el popup después de crear la categoría
+      onClose();
     } catch (error) {
       console.error('Error al crear la categoría:', error);
-      
-      // Muestra una alerta de error si falla
       Swal.fire({
         title: 'Error',
         text: 'Hubo un problema al crear la categoría.',
         icon: 'error',
         confirmButtonText: 'OK',
       });
+    } finally {
+      setCargando(false);
     }
   };
 
   return (
-    <div className="overlay">
-      <div className="popup">
-        <h2>Crear Nueva Categoría</h2>
-        <form onSubmit={handleSubmit}>
+    <div className="overlay" onClick={onClose}>
+      <div className="popup" onClick={(e) => e.stopPropagation()}>
+        <div className="popup-header">
+          <div className="popup-header-left">
+            <Tag size={15} className="popup-header-icon" />
+            <h2>Nueva Categoría</h2>
+          </div>
+          <button type="button" className="popup-close" onClick={onClose} aria-label="Cerrar">
+            <X size={16} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="popup-body">
           <div className="form-group">
-            <label htmlFor="categoriaNombre">Nombre de la Categoría</label>
+            <label htmlFor="categoriaNombre">Nombre <span className="required">*</span></label>
             <input
               type="text"
               id="categoriaNombre"
-              placeholder="Nombre"
+              placeholder="Ej: Bebidas, Lácteos, Electrodomésticos..."
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
+              required
+              autoFocus
             />
           </div>
+
           <div className="form-group">
-            <label htmlFor="categoriaDescripcion">Descripción de la Categoría</label>
+            <label htmlFor="categoriaDescripcion">Descripción</label>
             <input
               type="text"
               id="categoriaDescripcion"
-              placeholder="Descripción"
+              placeholder="Describe brevemente esta categoría"
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
             />
           </div>
+
           <div className="form-buttons">
-            <button type="submit">Guardar</button>
-            <button type="button" onClick={onClose}>
+            <button type="button" onClick={onClose} disabled={cargando}>
               Cancelar
+            </button>
+            <button type="submit" disabled={cargando}>
+              {cargando ? <><span className="btn-spinner" />Guardando...</> : 'Crear Categoría'}
             </button>
           </div>
         </form>

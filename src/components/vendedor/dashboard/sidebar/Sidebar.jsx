@@ -7,14 +7,17 @@ import {
   DollarSign,
   LogOut,
   Menu,
-  Lightbulb,
   ShoppingCart,
+  Users,
+  Truck,
+  Tag,
+  Settings,
   X
 } from 'lucide-react';
+
 import Swal from 'sweetalert2';
 import './styles/Sidebar.css';
-import logo from '../../login/LoginAssets/logo.png'; // Asegúrate de que la ruta es correcta
-
+import logo from '../../login/LoginAssets/logo.png';
 
 function Sidebar() {
   const navigate = useNavigate();
@@ -34,28 +37,25 @@ function Sidebar() {
     }).then((result) => {
       if (result.isConfirmed) {
         localStorage.removeItem('token');
-
+        localStorage.removeItem('user');
+        localStorage.removeItem('rol');
         Swal.fire({
           title: "Sesión cerrada",
           text: "Has cerrado sesión exitosamente.",
           icon: "success",
           confirmButtonColor: "#3085d6",
           confirmButtonText: "OK"
-        }).then(() => {
-          navigate("/");
-        });
+        }).then(() => navigate("/"));
       }
     });
   };
 
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-  };
+  const isActive = (path) => location.pathname.includes(path);
 
   return (
     <>
-      <button className="menu-toggle" onClick={toggleMenu}>
-        {isOpen ? <X size={24} /> : <Menu size={24} />}
+      <button className="menu-toggle" onClick={() => setIsOpen(!isOpen)}>
+        {isOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
 
       <div className={`sidebar ${isOpen ? 'open' : ''}`}>
@@ -65,14 +65,15 @@ function Sidebar() {
           </Link>
         </div>
 
-
         <div className="menu-container">
           <nav className="menu-items">
-            <h3 className="menu-title">Menú Principal</h3>
+
+            {/* PRINCIPAL */}
+            <span className="menu-section-title">Principal</span>
 
             <Link
               to="inicio"
-              className={`menu-item ${location.pathname.includes('inicio') ? 'active' : ''}`}
+              className={`menu-item ${isActive('inicio') ? 'active' : ''}`}
               onClick={() => setIsOpen(false)}
             >
               <LayoutDashboard className="menu-icon" />
@@ -81,7 +82,7 @@ function Sidebar() {
 
             <Link
               to="inventario"
-              className={`menu-item ${location.pathname.includes('inventario') ? 'active' : ''}`}
+              className={`menu-item ${isActive('inventario') ? 'active' : ''}`}
               onClick={() => setIsOpen(false)}
             >
               <Package className="menu-icon" />
@@ -90,7 +91,7 @@ function Sidebar() {
 
             <Link
               to="productos"
-              className={`menu-item ${location.pathname.includes('productos') ? 'active' : ''}`}
+              className={`menu-item ${isActive('productos') ? 'active' : ''}`}
               onClick={() => setIsOpen(false)}
             >
               <ShoppingCart className="menu-icon" />
@@ -98,8 +99,22 @@ function Sidebar() {
             </Link>
 
             <Link
+              to="categorias"
+              className={`menu-item ${isActive('categorias') ? 'active' : ''}`}
+              onClick={() => setIsOpen(false)}
+            >
+              <Tag className="menu-icon" />
+              <span>Categorías</span>
+            </Link>
+
+
+            {/* FINANZAS */}
+            <div className="menu-divider" />
+            <span className="menu-section-title">Finanzas</span>
+
+            <Link
               to="balance"
-              className={`menu-item ${location.pathname.includes('balance') ? 'active' : ''}`}
+              className={`menu-item ${isActive('balance') ? 'active' : ''}`}
               onClick={() => setIsOpen(false)}
             >
               <DollarSign className="menu-icon" />
@@ -108,21 +123,48 @@ function Sidebar() {
 
             <Link
               to="estadisticas"
-              className={`menu-item ${location.pathname.includes('estadisticas') ? 'active' : ''}`}
+              className={`menu-item ${isActive('estadisticas') ? 'active' : ''}`}
               onClick={() => setIsOpen(false)}
             >
               <LineChart className="menu-icon" />
               <span>Estadísticas</span>
             </Link>
 
-            {/* <Link
-              to="prediccion"
-              className={`menu-item ${location.pathname.includes('prediccion') ? 'active' : ''}`}
+            {/* CONTACTOS */}
+            <div className="menu-divider" />
+            <span className="menu-section-title">Contactos</span>
+
+            <Link
+              to="clientes"
+              className={`menu-item ${isActive('clientes') ? 'active' : ''}`}
               onClick={() => setIsOpen(false)}
             >
-              <Lightbulb className="menu-icon" />
-              <span>Prediccion</span>
-            </Link> */}
+              <Users className="menu-icon" />
+              <span>Clientes</span>
+            </Link>
+
+            <Link
+              to="proveedores"
+              className={`menu-item ${isActive('proveedores') ? 'active' : ''}`}
+              onClick={() => setIsOpen(false)}
+            >
+              <Truck className="menu-icon" />
+              <span>Proveedores</span>
+            </Link>
+
+            {/* GESTIÓN */}
+            <div className="menu-divider" />
+            <span className="menu-section-title">Gestión</span>
+
+            <Link
+              to="configuracion"
+              className={`menu-item ${isActive('configuracion') ? 'active' : ''}`}
+              onClick={() => setIsOpen(false)}
+            >
+              <Settings className="menu-icon" />
+              <span>Configuración</span>
+            </Link>
+
           </nav>
         </div>
 

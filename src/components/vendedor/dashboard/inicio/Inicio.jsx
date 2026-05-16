@@ -1,180 +1,230 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  Package, 
-  TrendingUp, 
-  DollarSign, 
-  ShoppingCart, 
-  AlertTriangle,
-  Clock,
-  BarChart,
-  Activity
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  TrendingUp, TrendingDown, Package, AlertTriangle,
+  ShoppingBag, Clock, ChevronRight
 } from 'lucide-react';
+import { getVentas } from '../../../../services/ventaService';
+import { getEgresos } from '../../../../services/egresoService';
+import { getAllProducts } from '../../../../services/productServices';
 import './inicio.css';
 
 function Inicio() {
-  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [ventas, setVentas] = useState([]);
+  const [egresos, setEgresos] = useState([]);
+  const [productos, setProductos] = useState([]);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
-      setUser(JSON.parse(userData));
+      try { setUser(JSON.parse(userData)); } catch { localStorage.removeItem('user'); }
     }
-    setLoading(false);
 
-    // Actualizar la hora cada minuto
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000);
-
-    return () => clearInterval(timer);
+    const token = localStorage.getItem('token');
+    Promise.all([getVentas(token), getEgresos(token), getAllProducts(token)])
+      .then(([v, e, p]) => {
+        setVentas(v);
+        setEgresos(e);
+        setProductos(p);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+
+  const localDateStr = (iso) => {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const ventasHoy = ventas.filter(v => localDateStr(v.createdAt) === todayStr);
+  const ingresosHoy = ventasHoy.reduce((s, v) => s + Number(v.total), 0);
+
+  const now = new Date();
+  const mesActual = now.getMonth();
+  const anioActual = now.getFullYear();
+
+  const ingresosMes = ventas
+    .filter(v => { const d = new Date(v.createdAt); return d.getMonth() === mesActual && d.getFullYear() === anioActual; })
+    .reduce((s, v) => s + Number(v.total), 0);
+
+  const egresosMes = egresos
+    .filter(e => { const d = new Date(e.createdAt); return d.getMonth() === mesActual && d.getFullYear() === anioActual; })
+    .reduce((s, e) => s + Number(e.total), 0);
+
+  const balanceMes = ingresosMes - egresosMes;
+
+  const stockCritico = productos.filter(p => Number(p.cantidadDisponible) < 5);
+
+  const ultimasVentas = [...ventas]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 5);
+
+  const fmt = (n) => `$${Number(n).toLocaleString('es-CO')}`;
+
+  const formatFecha = (iso) => {
+    const d = new Date(iso);
+    return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
+  };
+
+  const nombreUsuario = user?.primerNombre || 'usuario';
+
   if (loading) {
-    return <div className="loading">Cargando...</div>;
+    return (
+      <div className="inicio-loader">
+        <div className="inicio-spinner"></div>
+        <p>Cargando...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="inicio-container">
-      {/* Encabezado de bienvenida */}
-      <div className="welcome-section">
-        <div className="welcome-content">
-          <h1>
-            ¡Bienvenido, {user?.primerNombre} {user?.primerApellido}!
-          </h1>
-          <p className="welcome-time">
-            <Clock className="icon" />
-            {currentTime.toLocaleTimeString('es-ES', { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              hour12: true 
-            })} - {currentTime.toLocaleDateString('es-ES', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
+    <div className="inicio-view">
+      {/* Header */}
+      <div className="inicio-header">
+        <div>
+          <h1 className="inicio-welcome">Hola, {nombreUsuario}</h1>
+          <p className="inicio-fecha">
+            <Clock size={13} />
+            {now.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
       </div>
 
-      {/* Tarjetas de acceso rápido */}
-      <div className="quick-access-grid">
-        <div className="quick-access-card">
-          <Package className="card-icon" />
-          <h3>Inventario</h3>
-          <p>Gestiona tus productos y categorías</p>
-          <ul>
-            <li>Crear nuevos productos</li>
-            <li>Actualizar stock</li>
-            <li>Gestionar categorías</li>
-          </ul>
+      {/* KPIs */}
+      <div className="inicio-kpi-grid">
+        <div className="inicio-kpi-card">
+          <div className="inicio-kpi-icon success">
+            <TrendingUp size={20} />
+          </div>
+          <div className="inicio-kpi-body">
+            <span className="inicio-kpi-label">Ventas hoy</span>
+            <span className="inicio-kpi-value">{fmt(ingresosHoy)}</span>
+            <span className="inicio-kpi-sub">{ventasHoy.length} {ventasHoy.length === 1 ? 'transacción' : 'transacciones'}</span>
+          </div>
         </div>
 
-        <div className="quick-access-card">
-          <ShoppingCart className="card-icon" />
-          <h3>Ventas</h3>
-          <p>Control de transacciones</p>
-          <ul>
-            <li>Registrar ventas</li>
-            <li>Ver historial</li>
-            <li>Gestionar devoluciones</li>
-          </ul>
+        <div className="inicio-kpi-card">
+          <div className={`inicio-kpi-icon ${balanceMes >= 0 ? 'primary' : 'danger'}`}>
+            {balanceMes >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+          </div>
+          <div className="inicio-kpi-body">
+            <span className="inicio-kpi-label">Balance del mes</span>
+            <span className={`inicio-kpi-value ${balanceMes < 0 ? 'text-danger' : ''}`}>{fmt(balanceMes)}</span>
+            <span className="inicio-kpi-sub">{fmt(ingresosMes)} ingresos · {fmt(egresosMes)} egresos</span>
+          </div>
         </div>
 
-        <div className="quick-access-card">
-          <DollarSign className="card-icon" />
-          <h3>Balance</h3>
-          <p>Control financiero</p>
-          <ul>
-            <li>Registrar ingresos</li>
-            <li>Registrar egresos</li>
-            <li>Ver balance general</li>
-          </ul>
+        <div className="inicio-kpi-card">
+          <div className="inicio-kpi-icon primary">
+            <Package size={20} />
+          </div>
+          <div className="inicio-kpi-body">
+            <span className="inicio-kpi-label">Productos</span>
+            <span className="inicio-kpi-value">{productos.length}</span>
+            <span className="inicio-kpi-sub">en inventario</span>
+          </div>
         </div>
 
-        <div className="quick-access-card">
-          <BarChart className="card-icon" />
-          <h3>Estadísticas</h3>
-          <p>Análisis y reportes</p>
-          <ul>
-            <li>Ver tendencias</li>
-            <li>Analizar ventas</li>
-            <li>Generar informes</li>
-          </ul>
+        <div className={`inicio-kpi-card ${stockCritico.length > 0 ? 'kpi-warning' : ''}`}>
+          <div className={`inicio-kpi-icon ${stockCritico.length > 0 ? 'warning' : 'success'}`}>
+            <AlertTriangle size={20} />
+          </div>
+          <div className="inicio-kpi-body">
+            <span className="inicio-kpi-label">Stock crítico</span>
+            <span className="inicio-kpi-value">{stockCritico.length}</span>
+            <span className="inicio-kpi-sub">{stockCritico.length === 0 ? 'Sin alertas' : 'productos con menos de 5 und.'}</span>
+          </div>
         </div>
       </div>
 
-      {/* Sección de información del sistema */}
-      <div className="system-info">
-        <div className="info-card updates">
-          <div className="card-header">
-            <Activity className="header-icon" />
-            <h3>Estado del Sistema</h3>
+      {/* Bottom panels */}
+      <div className="inicio-panels">
+        {/* Últimas ventas */}
+        <div className="inicio-panel">
+          <div className="inicio-panel-header">
+            <div className="inicio-panel-title">
+              <ShoppingBag size={16} />
+              <span>Últimas ventas</span>
+            </div>
+            <button className="inicio-ver-mas" onClick={() => navigate('/dashboard/balance')}>
+              Ver todas <ChevronRight size={13} />
+            </button>
           </div>
-          <div className="status-indicator active">
-            <span className="status-dot"></span>
-            Sistema funcionando correctamente
-          </div>
-          <div className="version-info">
-            <h4>Versión 1.0 (BETA)</h4>
-            <p>Última actualización: Febrero 2024</p>
-          </div>
+
+          {ultimasVentas.length === 0 ? (
+            <div className="inicio-empty">
+              <TrendingUp size={28} style={{ opacity: 0.2 }} />
+              <p>Aún no hay ventas registradas</p>
+            </div>
+          ) : (
+            <ul className="inicio-venta-list">
+              {ultimasVentas.map((v) => {
+                const resumen = v.detalles?.length > 1
+                  ? `${v.detalles[0].productoNombre} (+${v.detalles.length - 1})`
+                  : v.detalles?.[0]?.productoNombre || 'Venta';
+                return (
+                  <li key={v.ventaid} className="inicio-venta-item"
+                    onClick={() => navigate(`/dashboard/venta/${v.ventaid}`, { state: { venta: v } })}>
+                    <div className="inicio-venta-info">
+                      <span className="inicio-venta-producto">{resumen}</span>
+                      <span className="inicio-venta-cliente">
+                        {v.cliente?.nombreCliente || <span style={{ opacity: 0.5 }}>General</span>}
+                      </span>
+                    </div>
+                    <div className="inicio-venta-right">
+                      <span className="inicio-venta-total">{fmt(v.total)}</span>
+                      <span className="inicio-venta-fecha">{formatFecha(v.createdAt)}</span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
 
-        <div className="info-card notifications">
-          <div className="card-header">
-            <AlertTriangle className="header-icon" />
-            <h3>Recordatorios</h3>
+        {/* Stock crítico */}
+        <div className="inicio-panel">
+          <div className="inicio-panel-header">
+            <div className="inicio-panel-title">
+              <AlertTriangle size={16} />
+              <span>Stock crítico</span>
+            </div>
+            <button className="inicio-ver-mas" onClick={() => navigate('/dashboard/inventario')}>
+              Ver inventario <ChevronRight size={13} />
+            </button>
           </div>
-          <ul className="notification-list">
-            <li>
-              <span className="notification-icon">📊</span>
-              Revisa tu inventario regularmente
-            </li>
-            <li>
-              <span className="notification-icon">💰</span>
-              Actualiza tu balance diariamente
-            </li>
-            <li>
-              <span className="notification-icon">📈</span>
-              Analiza las estadísticas semanalmente
-            </li>
-          </ul>
-        </div>
 
-        <div className="info-card features">
-          <div className="card-header">
-            <TrendingUp className="header-icon" />
-            <h3>Funcionalidades Disponibles</h3>
-          </div>
-          <div className="featuress-grid">
-            <div className="feature-item">
-              <h4>Inventario</h4>
-              <ul>
-                <li>Gestión de productos</li>
-                <li>Control de stock</li>
-                <li>Categorización</li>
-              </ul>
+          {stockCritico.length === 0 ? (
+            <div className="inicio-empty">
+              <Package size={28} style={{ opacity: 0.2 }} />
+              <p>Todos los productos tienen stock suficiente</p>
             </div>
-            <div className="feature-item">
-              <h4>Balance</h4>
-              <ul>
-                <li>Registro de ingresos</li>
-                <li>Control de gastos</li>
-                <li>Balance general</li>
-              </ul>
-            </div>
-            <div className="feature-item">
-              <h4>Estadísticas</h4>
-              <ul>
-                <li>Gráficos de ventas</li>
-                <li>Tendencias mensuales</li>
-                <li>Reportes detallados</li>
-              </ul>
-            </div>
-          </div>
+          ) : (
+            <ul className="inicio-stock-list">
+              {stockCritico.slice(0, 6).map((p) => (
+                <li key={p.productoid} className="inicio-stock-item">
+                  <div className="inicio-stock-info">
+                    <span className="inicio-stock-nombre">{p.nombre}</span>
+                    <span className="inicio-stock-precio">{fmt(p.precioVenta)}</span>
+                  </div>
+                  <span className={`inicio-stock-badge ${p.cantidadDisponible === 0 ? 'badge-out' : 'badge-low'}`}>
+                    {p.cantidadDisponible === 0 ? 'Sin stock' : `${p.cantidadDisponible} und.`}
+                  </span>
+                </li>
+              ))}
+              {stockCritico.length > 6 && (
+                <li className="inicio-stock-more">+{stockCritico.length - 6} productos más con stock bajo</li>
+              )}
+            </ul>
+          )}
         </div>
       </div>
     </div>

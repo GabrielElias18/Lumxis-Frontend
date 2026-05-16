@@ -1,32 +1,32 @@
-import React, { useState } from 'react';
-import ProductoInfo from './ProductoInfo';
+import React from 'react';
+import { Package } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import './styles/VisualizarProductos.css';
 
 function VisualizarProductos({ productos }) {
-  const [selectedProductId, setSelectedProductId] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   const handleProductoClick = (id) => {
-    setSelectedProductId(id);
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setSelectedProductId(null);
+    navigate(`/dashboard/producto/${id}`);
   };
 
   if (!productos || productos.length === 0) {
-    return <p className="sin-productos">No hay productos disponibles.</p>;
+    return (
+      <div className="empty-state">
+        <Package className="empty-state-icon" />
+        <p className="empty-state-title">Sin productos</p>
+        <p className="empty-state-text">No hay productos en esta categoría o búsqueda.</p>
+      </div>
+    );
   }
 
   return (
     <div className="productos-container">
       {productos.map((producto) => (
-        <div 
-          key={producto.productoid} 
-          className="producto-card" 
-          onClick={() => handleProductoClick(producto.productoid)} // Abre el modal al hacer clic
+        <div
+          key={producto.productoid}
+          className="producto-card"
+          onClick={() => handleProductoClick(producto.productoid)}
         >
           <div className="producto-imagen-container">
             {producto.imagenes && producto.imagenes.length > 0 ? (
@@ -45,14 +45,9 @@ function VisualizarProductos({ productos }) {
             )}
           </div>
           <h3 className="producto-nombre">{producto.nombre}</h3>
-          <p className="producto-cantidad">Cantidad Disponible: {producto.cantidadDisponible}</p>
+          <p className="producto-cantidad">Stock: {producto.cantidadDisponible}</p>
         </div>
       ))}
-
-      {/* Modal nativo */}
-      {isModalOpen && selectedProductId && (
-        <ProductoInfo id={selectedProductId} onClose={closeModal} />
-      )}
     </div>
   );
 }

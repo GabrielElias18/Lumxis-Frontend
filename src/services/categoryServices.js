@@ -1,59 +1,45 @@
-import axios from 'axios';
+import axiosInstance from '../api/axiosConfig';
 
-const API_URL = 'https://ordereasy-backend-533n.onrender.com/api/categorias'; // Cambia la URL si es necesario
-
-// Crear una nueva categoría
 export const createCategory = async (categoria, token) => {
   try {
-    const response = await axios.post(`${API_URL}`, categoria, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const response = await axiosInstance.post('/api/categorias', categoria, {
+      headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
   } catch (error) {
-    throw error.response.data;
+    throw error.response?.data || { mensaje: 'Error de conexión con el servidor.' };
   }
 };
 
-// Obtener las categorías de un usuario
 export const getCategoriesByUser = async (token) => {
   try {
-    const response = await axios.get(`${API_URL}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const response = await axiosInstance.get('/api/categorias', {
+      headers: { Authorization: `Bearer ${token}` },
     });
-    return response.data.categorias;
+    return response.data;
   } catch (error) {
-    throw error.response.data;
+    throw error.response?.data || { mensaje: 'Error de conexión con el servidor.' };
   }
 };
 
-// Editar una categoría
 export const updateCategory = async (id, updatedCategoria, token) => {
   try {
-    const response = await axios.put(`${API_URL}/${id}`, updatedCategoria, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const response = await axiosInstance.put(`/api/categorias/${id}`, updatedCategoria, {
+      headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
   } catch (error) {
-    throw error.response.data;
+    throw error.response?.data || { mensaje: 'Error de conexión con el servidor.' };
   }
 };
 
-// Eliminar una categoría
 export const deleteCategory = async (id, token) => {
   try {
-    const response = await axios.delete(`${API_URL}/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const response = await axiosInstance.delete(`/api/categorias/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
   } catch (error) {
-    throw error.response.data;
+    throw error.response?.data || { mensaje: 'Error de conexión con el servidor.' };
   }
 };

@@ -1,26 +1,26 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import { Plus, FolderPlus, Settings } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import VisualizarProductos from './vistas/VisualizarProductos';
-import CrearCategoriaForm from './vistas/CrearCategoriaForm';
-import CrearProductoForm from './vistas/CrearProductoForm';
-import GestionarCategoriaForm from './vistas/GestionarCategoriaForm';
-import ProductoInfo from './vistas/ProductoInfo';
 import { getCategoriesByUser } from '../../../../services/categoryServices';
 import { getAllProducts } from '../../../../services/productServices';
 import './inventario.css';
-
 function Inventario() {
-  const [isCrearCategoriaVisible, setCrearCategoriaVisible] = useState(false);
-  const [isCrearProductoVisible, setCrearProductoVisible] = useState(false);
-  const [isGestionarCategoriaVisible, setGestionarCategoriaVisible] = useState(false);
+  const navigate = useNavigate();
+
   const [categorias, setCategorias] = useState([]);
   const [productos, setProductos] = useState([]);
-  const [selectedCategoriaId, setSelectedCategoriaId] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+  const [selectedCategoriaId, setSelectedCategoriaId] = useState(() => {
+    return localStorage.getItem("invFilterCategory") || "";
+  });
+  const [searchTerm, setSearchTerm] = useState(() => {
+    return localStorage.getItem("invSearchTerm") || "";
+  });
 
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(() => {
+    return parseInt(localStorage.getItem("invCurrentPage")) || 1;
+  });
   const productosPorPagina = 10;
 
   useEffect(() => {
@@ -28,7 +28,7 @@ function Inventario() {
       try {
         const token = localStorage.getItem('token');
         const categoriasData = await getCategoriesByUser(token);
-        setCategorias(categoriasData);
+        setCategorias(Array.isArray(categoriasData) ? categoriasData : []);
       } catch (error) {
         console.error('Error al obtener las categorías:', error);
       }
@@ -99,7 +99,18 @@ function Inventario() {
   const cambiarPagina = (nuevaPagina) => {
     if (nuevaPagina >= 1 && nuevaPagina <= totalPaginas) {
       setCurrentPage(nuevaPagina);
+      localStorage.setItem("invCurrentPage", nuevaPagina);
     }
+  };
+
+  const handleSetSearch = (val) => {
+    setSearchTerm(val);
+    localStorage.setItem("invSearchTerm", val);
+  };
+
+  const handleSetCategory = (val) => {
+    setSelectedCategoriaId(val);
+    localStorage.setItem("invFilterCategory", val);
   };
 
   const handleUpdateProduct = async (updatedProduct) => {
@@ -151,32 +162,18 @@ function Inventario() {
         <div className="inventario-buttons-left">
           <button 
             className="inventario-btn inventario-btn-primary"
-            onClick={() => setCrearProductoVisible(true)}
+            onClick={() => navigate('/dashboard/nuevo-producto')}
           >
             <Plus size={18} />
             <span>Agregar Producto</span>
           </button>
-          <button 
-            className="inventario-btn inventario-btn-secondary"
-            onClick={() => setCrearCategoriaVisible(true)}
-          >
-            <FolderPlus size={18} />
-            <span>Agregar Categoría</span>
-          </button>
         </div>
 
         <div className="inventario-filters-right">
-          <button 
-            className="inventario-btn inventario-btn-secondary"
-            onClick={() => setGestionarCategoriaVisible(true)}
-          >
-            <Settings size={18} />
-            <span>Gestionar Categorías</span>
-          </button>
           <select
             className="inventario-select"
             value={selectedCategoriaId}
-            onChange={(e) => setSelectedCategoriaId(e.target.value)}
+            onChange={(e) => handleSetCategory(e.target.value)}
           >
             <option value="">Seleccione una categoría</option>
             {categorias.map((categoria) => (
@@ -194,14 +191,13 @@ function Inventario() {
           className="inventario-search-input"
           placeholder="Buscar Producto"
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => handleSetSearch(e.target.value)}
         />
       </div>
 
       <div className="inventario-products">
         <VisualizarProductos
           productos={productosPaginados}
-          onVerDetalles={setProductoSeleccionado}
         />
       </div>
 
@@ -234,39 +230,8 @@ function Inventario() {
           </button>
         </div>
       )}
-
-      {productoSeleccionado && (
-        <ProductoInfo
-          id={productoSeleccionado.productoid}
-          onClose={() => {
-            setProductoSeleccionado(null);
-            fetchProductos();
-          }}
-        />
-      )}
-
-      <CrearCategoriaForm
-        isVisible={isCrearCategoriaVisible}
-        onClose={() => {
-          setCrearCategoriaVisible(false);
-          fetchProductos();
-        }}
-      />
-      <CrearProductoForm
-        isVisible={isCrearProductoVisible}
-        onClose={() => {
-          setCrearProductoVisible(false);
-          fetchProductos();
-        }}
-      />
-      <GestionarCategoriaForm
-        isVisible={isGestionarCategoriaVisible}
-        onClose={() => {
-          setGestionarCategoriaVisible(false);
-          fetchProductos();
-        }}
-      />
     </div>
+
   );
 }
 

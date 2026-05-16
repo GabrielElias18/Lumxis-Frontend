@@ -1,22 +1,26 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 
-const ProtectedRoute = ({ children, rolPermitido }) => {
-  // Obtener el token y el rol desde localStorage
-  const isAuthenticated = localStorage.getItem('token');
-  const userRol = localStorage.getItem('rol'); // Guardaste el rol en el login
+const isTokenValid = (token) => {
+  if (!token) return false;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp * 1000 > Date.now();
+  } catch {
+    return false;
+  }
+};
 
-  // Redirigir al login si no está autenticado
-  if (!isAuthenticated) {
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('token');
+
+  if (!isTokenValid(token)) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('rol');
     return <Navigate to="/login" />;
   }
 
-  // Si el rol del usuario no coincide con el rol permitido, redirigir al dashboard correspondiente
-  if (rolPermitido && userRol !== rolPermitido) {
-    return userRol === "administrador" ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />;
-  }
-
-  // Si está autenticado y tiene el rol correcto, renderizar los componentes hijos
   return children;
 };
 
