@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Settings, Users, Shield, ChevronRight, Clock, Building2, Edit2 } from 'lucide-react';
-import Swal from 'sweetalert2';
+import { toast } from 'sonner';
 import axiosInstance from '../../../../api/axiosConfig';
 import './configuracion.css';
 
@@ -40,9 +40,9 @@ const Configuracion = () => {
       const res = await axiosInstance.put('/api/negocio', form);
       setNegocio(res.data.negocio);
       cerrarModal();
-      Swal.fire({ title: 'Actualizado', icon: 'success', timer: 1500, showConfirmButton: false });
+      toast.success('Negocio actualizado correctamente.');
     } catch {
-      Swal.fire('Error', 'No se pudo actualizar el negocio.', 'error');
+      toast.error('No se pudo actualizar el negocio.');
     } finally {
       setGuardando(false);
     }

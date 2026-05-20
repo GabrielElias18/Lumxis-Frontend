@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Tag, Pencil, Check, Trash2 } from 'lucide-react';
-import Swal from 'sweetalert2';
+import { toast } from 'sonner';
 import './styles/GestionarCategoriaForm.css';
 import { getCategoriesByUser, updateCategory, deleteCategory } from '../../../../../services/categoryServices';
 
@@ -12,16 +12,10 @@ function GestionarCategoriaForm({ isVisible, onClose }) {
   const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
-    const fetchCategorias = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const data = await getCategoriesByUser(token);
-        setCategorias(data);
-      } catch (error) {
-        console.error('Error al obtener las categorías:', error);
-      }
-    };
-    if (isVisible) fetchCategorias();
+    if (!isVisible) return;
+    getCategoriesByUser()
+      .then(setCategorias)
+      .catch(() => toast.error('Error al obtener las categorías.'));
   }, [isVisible]);
 
   const handleSelectChange = (event) => {
@@ -37,45 +31,41 @@ function GestionarCategoriaForm({ isVisible, onClose }) {
     if (!categoriaSeleccionada) return;
     setCargando(true);
     try {
-      const token = localStorage.getItem('token');
       const updated = { ...categoriaSeleccionada, ...editedCategoria };
-      await updateCategory(categoriaSeleccionada.categoriaid, updated, token);
+      await updateCategory(categoriaSeleccionada.categoriaid, updated);
       setCategorias(categorias.map((c) => c.categoriaid === categoriaSeleccionada.categoriaid ? updated : c));
       setCategoriaSeleccionada(updated);
       setIsEditing(false);
-      Swal.fire({ title: '¡Actualizado!', text: 'Categoría actualizada con éxito.', icon: 'success', timer: 1800, showConfirmButton: false })
-        .then(() => window.location.reload());
-    } catch (error) {
-      Swal.fire({ title: 'Error', text: 'Hubo un problema al actualizar la categoría.', icon: 'error', confirmButtonText: 'Aceptar' });
+      toast.success('Categoría actualizada con éxito.');
+      onClose();
+    } catch {
+      toast.error('Hubo un problema al actualizar la categoría.');
     } finally {
       setCargando(false);
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!categoriaSeleccionada) return;
-    const result = await Swal.fire({
-      title: `¿Eliminar "${categoriaSeleccionada.nombre}"?`,
-      text: 'Esta acción eliminará la categoría permanentemente.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#DC2626',
-      cancelButtonColor: '#64748B',
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar',
+    toast(`¿Eliminar "${categoriaSeleccionada.nombre}"?`, {
+      description: 'Esta acción eliminará la categoría permanentemente.',
+      action: {
+        label: 'Eliminar',
+        onClick: async () => {
+          try {
+            await deleteCategory(categoriaSeleccionada.categoriaid);
+            setCategorias(categorias.filter((c) => c.categoriaid !== categoriaSeleccionada.categoriaid));
+            setCategoriaSeleccionada(null);
+            setIsEditing(false);
+            toast.success('Categoría eliminada correctamente.');
+            onClose();
+          } catch {
+            toast.error('Hubo un problema al eliminar la categoría.');
+          }
+        },
+      },
+      cancel: { label: 'Cancelar', onClick: () => {} },
     });
-    if (!result.isConfirmed) return;
-    try {
-      const token = localStorage.getItem('token');
-      await deleteCategory(categoriaSeleccionada.categoriaid, token);
-      setCategorias(categorias.filter((c) => c.categoriaid !== categoriaSeleccionada.categoriaid));
-      setCategoriaSeleccionada(null);
-      setIsEditing(false);
-      Swal.fire({ title: '¡Eliminado!', text: 'La categoría se eliminó correctamente.', icon: 'success', timer: 1500, showConfirmButton: false })
-        .then(() => window.location.reload());
-    } catch (error) {
-      Swal.fire({ title: 'Error', text: 'Hubo un problema al eliminar la categoría.', icon: 'error', confirmButtonText: 'Aceptar' });
-    }
   };
 
   const handleInputChange = ({ target: { name, value } }) =>
@@ -102,7 +92,7 @@ function GestionarCategoriaForm({ isVisible, onClose }) {
             <select
               id="selectCategoria"
               onChange={handleSelectChange}
-              value={categoriaSeleccionada ? categoriaSeleccionada.categoriaid : ""}
+              value={categoriaSeleccionada ? categoriaSeleccionada.categoriaid : ''}
             >
               <option value="" disabled>Elige una categoría para gestionar...</option>
               {categorias.map((cat) => (
@@ -126,14 +116,7 @@ function GestionarCategoriaForm({ isVisible, onClose }) {
               <div className="form-group">
                 <label>Nombre {isEditing && <span className="required">*</span>}</label>
                 {isEditing ? (
-                  <input
-                    type="text"
-                    name="nombre"
-                    value={editedCategoria.nombre}
-                    onChange={handleInputChange}
-                    required
-                    autoFocus
-                  />
+                  <input type="text" name="nombre" value={editedCategoria.nombre} onChange={handleInputChange} required autoFocus />
                 ) : (
                   <p className="field-value">{categoriaSeleccionada.nombre}</p>
                 )}
@@ -142,13 +125,7 @@ function GestionarCategoriaForm({ isVisible, onClose }) {
               <div className="form-group">
                 <label>Descripción</label>
                 {isEditing ? (
-                  <input
-                    type="text"
-                    name="descripcion"
-                    value={editedCategoria.descripcion}
-                    onChange={handleInputChange}
-                    placeholder="Sin descripción"
-                  />
+                  <input type="text" name="descripcion" value={editedCategoria.descripcion} onChange={handleInputChange} placeholder="Sin descripción" />
                 ) : (
                   <p className="field-value">{categoriaSeleccionada.descripcion || <span className="field-empty">Sin descripción</span>}</p>
                 )}
@@ -157,13 +134,7 @@ function GestionarCategoriaForm({ isVisible, onClose }) {
           )}
 
           <div className="form-buttons">
-            <button
-              type="button"
-              className="btn-danger"
-              onClick={handleDelete}
-              disabled={!categoriaSeleccionada || cargando}
-              title="Eliminar categoría"
-            >
+            <button type="button" className="btn-danger" onClick={handleDelete} disabled={!categoriaSeleccionada || cargando} title="Eliminar categoría">
               <Trash2 size={14} />
               Eliminar
             </button>

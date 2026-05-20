@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Package } from "lucide-react";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
 import "./styles/CrearProductoForm.css";
 import { createProduct } from "../../../../../services/productServices";
 import { getCategoriesByUser } from "../../../../../services/categoryServices";
@@ -25,8 +25,7 @@ function CrearProductoForm({ isVisible, onClose }) {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const data = await getCategoriesByUser(token);
+        const data = await getCategoriesByUser();
         setCategorias(data);
       } catch (error) {
         console.error("Error al obtener categorías:", error);
@@ -47,7 +46,6 @@ function CrearProductoForm({ isVisible, onClose }) {
     event.preventDefault();
     setCargando(true);
     try {
-      const token = localStorage.getItem("token");
       const formData = new FormData();
       formData.append("nombre", nombre);
       formData.append("descripcion", descripcion);
@@ -57,28 +55,13 @@ function CrearProductoForm({ isVisible, onClose }) {
       formData.append("categoriaNombre", categoriaNombre);
       imagenes.forEach((img) => formData.append("imagenes", img));
 
-      await createProduct(formData, token);
-
-      Swal.fire({
-        title: "¡Producto creado!",
-        text: "El producto se registró correctamente.",
-        icon: "success",
-        confirmButtonText: "OK",
-        confirmButtonColor: "#1565C0",
-        timer: 2000,
-        showConfirmButton: false,
-      }).then(() => window.location.reload());
-
+      await createProduct(formData);
+      toast.success("Producto creado correctamente.");
       setNombre(""); setDescripcion(""); setCantidadDisponible("");
       setPrecioCompra(""); setPrecioVenta(""); setImagenes([]); setPreview(""); setCategoriaNombre("");
       onClose();
     } catch (error) {
-      Swal.fire({
-        title: "Error",
-        text: error.response?.data?.mensaje || "Hubo un problema al crear el producto.",
-        icon: "error",
-        confirmButtonText: "OK",
-      });
+      toast.error(error.response?.data?.mensaje || "Hubo un problema al crear el producto.");
     } finally {
       setCargando(false);
     }

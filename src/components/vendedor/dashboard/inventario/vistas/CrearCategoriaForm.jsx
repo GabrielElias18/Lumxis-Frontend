@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, Tag } from 'lucide-react';
-import Swal from 'sweetalert2';
+import { toast } from 'sonner';
 import './styles/CrearCategoriaForm.css';
 import { createCategory } from '../../../../../services/categoryServices';
 
-function CrearCategoriaForm({ isVisible, onClose }) {
+function CrearCategoriaForm({ isVisible, onClose, onCreated }) {
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [cargando, setCargando] = useState(false);
@@ -15,28 +15,14 @@ function CrearCategoriaForm({ isVisible, onClose }) {
     event.preventDefault();
     setCargando(true);
     try {
-      const token = localStorage.getItem('token');
-      await createCategory({ nombre, descripcion }, token);
-      Swal.fire({
-        title: '¡Categoría creada!',
-        text: 'La categoría se registró correctamente.',
-        icon: 'success',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#1565C0',
-        timer: 2000,
-        showConfirmButton: false,
-      }).then(() => window.location.reload());
+      await createCategory({ nombre, descripcion });
+      toast.success('Categoría creada correctamente.');
       setNombre('');
       setDescripcion('');
+      onCreated?.();
       onClose();
-    } catch (error) {
-      console.error('Error al crear la categoría:', error);
-      Swal.fire({
-        title: 'Error',
-        text: 'Hubo un problema al crear la categoría.',
-        icon: 'error',
-        confirmButtonText: 'OK',
-      });
+    } catch {
+      toast.error('Hubo un problema al crear la categoría.');
     } finally {
       setCargando(false);
     }

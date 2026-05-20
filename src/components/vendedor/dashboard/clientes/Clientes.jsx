@@ -1,20 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Users, Search, Edit2, Trash2 } from 'lucide-react';
-import Swal from 'sweetalert2';
+import { toast } from 'sonner';
+import { useDebounce } from '../../../../hooks/useDebounce';
 import { getClientes, createCliente, updateCliente, deleteCliente } from '../../../../services/clienteService';
 import './clientes.css';
 
+const SkeletonRow = () => (
+  <tr>
+    {[60, 30, 50, 40, 20].map((w, i) => (
+      <td key={i}>
+        <div style={{ height: 12, borderRadius: 4, background: 'linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%)', backgroundSize: '800px 100%', animation: 'shimmer 1.4s infinite', width: `${w}%` }} />
+      </td>
+    ))}
+  </tr>
+);
+
 function Clientes() {
   const [clientes, setClientes] = useState([]);
-  const [busqueda, setBusqueda] = useState(() => localStorage.getItem("cliSearchTerm") || "");
-  const [paginaActual, setPaginaActual] = useState(() => parseInt(localStorage.getItem("cliCurrentPage")) || 1);
+  const [loading, setLoading] = useState(true);
+  const [busqueda, setBusqueda] = useState(() => localStorage.getItem('cliSearchTerm') || '');
+  const [paginaActual, setPaginaActual] = useState(() => parseInt(localStorage.getItem('cliCurrentPage')) || 1);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [clienteEditando, setClienteEditando] = useState(null);
   const [form, setForm] = useState({ nombreCliente: '', telefono: '', correo: '', direccion: '' });
   const [cargando, setCargando] = useState(false);
   const registrosPorPagina = 12;
 
-  const token = localStorage.getItem('token');
+  const debouncedBusqueda = useDebounce(busqueda, 300);
 
   useEffect(() => {
     fetchClientes();
@@ -22,23 +34,25 @@ function Clientes() {
 
   const fetchClientes = async () => {
     try {
-      const data = await getClientes(token);
+      const data = await getClientes();
       setClientes(data);
-    } catch (error) {
-      console.error('Error al obtener clientes:', error);
+    } catch {
+      toast.error('Error al obtener clientes.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSetBusqueda = (val) => {
     setBusqueda(val);
     setPaginaActual(1);
-    localStorage.setItem("cliSearchTerm", val);
-    localStorage.setItem("cliCurrentPage", 1);
+    localStorage.setItem('cliSearchTerm', val);
+    localStorage.setItem('cliCurrentPage', 1);
   };
 
   const handleSetPagina = (val) => {
     setPaginaActual(val);
-    localStorage.setItem("cliCurrentPage", val);
+    localStorage.setItem('cliCurrentPage', val);
   };
 
   const abrirCrear = () => {
@@ -49,12 +63,7 @@ function Clientes() {
 
   const abrirEditar = (cliente) => {
     setClienteEditando(cliente);
-    setForm({
-      nombreCliente: cliente.nombreCliente,
-      telefono: cliente.telefono,
-      correo: cliente.correo,
-      direccion: cliente.direccion,
-    });
+    setForm({ nombreCliente: cliente.nombreCliente, telefono: cliente.telefono, correo: cliente.correo, direccion: cliente.direccion });
     setMostrarModal(true);
   };
 
@@ -70,47 +79,43 @@ function Clientes() {
     setCargando(true);
     try {
       if (clienteEditando) {
-        await updateCliente(clienteEditando.clienteid, form, token);
-        Swal.fire({ title: 'Actualizado', text: 'Cliente actualizado.', icon: 'success', timer: 1800, showConfirmButton: false });
+        await updateCliente(clienteEditando.clienteid, form);
+        toast.success('Cliente actualizado.');
       } else {
-        await createCliente(form, token);
-        Swal.fire({ title: 'Creado', text: 'Cliente registrado.', icon: 'success', timer: 1800, showConfirmButton: false });
+        await createCliente(form);
+        toast.success('Cliente registrado.');
       }
       await fetchClientes();
       cerrarModal();
     } catch (error) {
-      Swal.fire({ title: 'Error', text: error.mensaje || 'Error al guardar.', icon: 'error' });
+      toast.error(error.mensaje || 'Error al guardar.');
     } finally {
       setCargando(false);
     }
   };
 
-  const handleEliminar = async (id, nombre) => {
-    const result = await Swal.fire({
-      title: `¿Eliminar a ${nombre}?`,
-      text: 'Esta acción no se puede deshacer.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#DC2626',
-      cancelButtonColor: '#64748B',
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar',
+  const handleEliminar = (id, nombre) => {
+    toast(`¿Eliminar a ${nombre}?`, {
+      action: {
+        label: 'Eliminar',
+        onClick: async () => {
+          try {
+            await deleteCliente(id);
+            setClientes((prev) => prev.filter((c) => c.clienteid !== id));
+            toast.success('Cliente eliminado.');
+          } catch {
+            toast.error('No se pudo eliminar el cliente.');
+          }
+        },
+      },
+      cancel: { label: 'Cancelar', onClick: () => {} },
     });
-    if (result.isConfirmed) {
-      try {
-        await deleteCliente(id, token);
-        setClientes((prev) => prev.filter((c) => c.clienteid !== id));
-        Swal.fire({ title: 'Eliminado', icon: 'success', timer: 1500, showConfirmButton: false });
-      } catch (error) {
-        Swal.fire({ title: 'Error', text: 'No se pudo eliminar el cliente.', icon: 'error' });
-      }
-    }
   };
 
   const clientesFiltrados = clientes.filter((c) =>
-    c.nombreCliente?.toLowerCase().includes(busqueda.toLowerCase()) ||
-    c.correo?.toLowerCase().includes(busqueda.toLowerCase()) ||
-    c.telefono?.includes(busqueda)
+    c.nombreCliente?.toLowerCase().includes(debouncedBusqueda.toLowerCase()) ||
+    c.correo?.toLowerCase().includes(debouncedBusqueda.toLowerCase()) ||
+    c.telefono?.includes(debouncedBusqueda)
   );
 
   const total = Math.ceil(clientesFiltrados.length / registrosPorPagina);
@@ -119,6 +124,8 @@ function Clientes() {
 
   return (
     <div className="clientes-main">
+      <style>{`@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }`}</style>
+
       <div className="clientes-header">
         <div className="clientes-header-left">
           <Users size={18} className="clientes-header-icon" />
@@ -154,7 +161,9 @@ function Clientes() {
             </tr>
           </thead>
           <tbody>
-            {pagina.length > 0 ? pagina.map((c) => (
+            {loading ? (
+              Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)
+            ) : pagina.length > 0 ? pagina.map((c) => (
               <tr key={c.clienteid}>
                 <td className="clientes-td-nombre">{c.nombreCliente}</td>
                 <td>{c.telefono}</td>
@@ -177,7 +186,7 @@ function Clientes() {
         </table>
       </div>
 
-      {total > 1 && (
+      {!loading && total > 1 && (
         <div className="clientes-paginacion">
           <button onClick={() => handleSetPagina(paginaActual - 1)} disabled={paginaActual === 1}>Anterior</button>
           <span>Página {paginaActual} de {total}</span>

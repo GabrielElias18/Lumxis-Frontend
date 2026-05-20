@@ -1,17 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import Swal from 'sweetalert2';
-import { 
-  ArrowLeft, 
-  Edit3, 
-  Trash2, 
-  Package, 
-  Info, 
-  DollarSign, 
-  Layers, 
-  TrendingUp,
-  Tag
-} from 'lucide-react';
+import { toast } from 'sonner';
+import { ArrowLeft, Edit3, Trash2, Package, Info, TrendingUp } from 'lucide-react';
 import { deleteProduct, getProductById } from '../../../../../services/productServices';
 import { getCategoriesByUser } from '../../../../../services/categoryServices';
 import EditarProductoForm from './EditarProductoForm';
@@ -29,82 +19,64 @@ function DetalleProducto() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('token');
         const [productoRes, categoriasRes] = await Promise.allSettled([
-          getProductById(id, token),
-          getCategoriesByUser(token)
+          getProductById(id),
+          getCategoriesByUser(),
         ]);
 
         const productoData = productoRes.status === 'fulfilled' ? productoRes.value : null;
         const categoriasData = categoriasRes.status === 'fulfilled' ? categoriasRes.value : [];
 
-        if (productoRes.status === 'rejected') {
-          console.error('Error fetching product:', productoRes.reason);
-          Swal.fire('Error', 'No se pudo cargar el producto', 'error');
+        if (productoRes.status === 'rejected' || !productoData) {
+          toast.error('No se pudo cargar el producto.');
           navigate('/dashboard/inventario');
           return;
         }
 
-        if (categoriasRes.status === 'rejected') {
-          console.error('Error fetching categories:', categoriasRes.reason);
-        }
-
         setCategorias(categoriasData);
-        if (productoData && productoData.categoriaid && categoriasData.length > 0) {
-          const cat = categoriasData.find(c => String(c.categoriaid) === String(productoData.categoriaid));
+        if (productoData.categoriaid && categoriasData.length > 0) {
+          const cat = categoriasData.find((c) => String(c.categoriaid) === String(productoData.categoriaid));
           if (cat) productoData.categoriaNombre = cat.nombre;
         }
         setProducto(productoData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        Swal.fire('Error', 'Ocurrió un error inesperado', 'error');
+      } catch {
+        toast.error('Ocurrió un error inesperado.');
       } finally {
         setLoading(false);
       }
-
     };
     fetchData();
   }, [id, navigate]);
 
-  const handleDelete = async () => {
-    const result = await Swal.fire({
-      title: '¿Eliminar este producto?',
-      text: 'Esta acción borrará el registro permanentemente.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#ef4444',
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar'
+  const handleDelete = () => {
+    toast('¿Eliminar este producto?', {
+      description: 'Esta acción borrará el registro permanentemente.',
+      action: {
+        label: 'Eliminar',
+        onClick: async () => {
+          try {
+            await deleteProduct(id);
+            navigate('/dashboard/inventario');
+          } catch {
+            toast.error('No se pudo eliminar.');
+          }
+        },
+      },
+      cancel: { label: 'Cancelar', onClick: () => {} },
     });
-  
-    if (result.isConfirmed) {
-      try {
-        const token = localStorage.getItem('token');
-        await deleteProduct(id, token);
-        navigate('/dashboard/inventario');
-      } catch (error) {
-        Swal.fire('Error', 'No se pudo eliminar', 'error');
-      }
-    }
   };
 
   const handleUpdate = (updatedProduct) => {
     if (updatedProduct.categoriaid && categorias.length > 0) {
-      const cat = categorias.find(c => String(c.categoriaid) === String(updatedProduct.categoriaid));
+      const cat = categorias.find((c) => String(c.categoriaid) === String(updatedProduct.categoriaid));
       if (cat) updatedProduct.categoriaNombre = cat.nombre;
     }
     setProducto(updatedProduct);
     setIsEditing(false);
+    toast.success('Producto actualizado.');
   };
 
-  if (loading) {
-    return (
-      <div className="view-loading">
-        <div className="loader-spinner"></div>
-      </div>
-    );
-  }
-
+  if (loading) return <div className="view-loading"><div className="loader-spinner" /></div>;
   if (!producto) return null;
 
   return (
@@ -116,7 +88,7 @@ function DetalleProducto() {
         <div className="header-text">
           <h1>Detalles del Producto</h1>
           <div className="detail-breadcrumb">
-             <span>Inventario</span> / <span className="active">{producto.nombre}</span>
+            <span>Inventario</span> / <span className="active">{producto.nombre}</span>
           </div>
         </div>
         {!isEditing && (
@@ -135,11 +107,11 @@ function DetalleProducto() {
       <div className="detail-main-container">
         {isEditing ? (
           <div className="inline-editor">
-            <EditarProductoForm 
-              producto={producto} 
-              onClose={() => setIsEditing(false)} 
-              onUpdate={handleUpdate} 
-              isInline={true} 
+            <EditarProductoForm
+              producto={producto}
+              onClose={() => setIsEditing(false)}
+              onUpdate={handleUpdate}
+              isInline={true}
             />
           </div>
         ) : (
@@ -148,9 +120,9 @@ function DetalleProducto() {
               <div className="detail-image-box">
                 {producto.imagenes?.length > 0 ? (
                   <img
-                    src={producto.imagenes[0].startsWith("http") ? producto.imagenes[0] : `http://localhost:3000/uploads/${producto.imagenes[0]}`}
+                    src={producto.imagenes[0].startsWith('http') ? producto.imagenes[0] : `http://localhost:3000/uploads/${producto.imagenes[0]}`}
                     alt={producto.nombre}
-                    onError={(e) => (e.target.src = "/images/default-product.png")}
+                    onError={(e) => (e.target.src = '/images/default-product.png')}
                   />
                 ) : (
                   <img src="/images/default-product.png" alt="default" />
@@ -166,12 +138,12 @@ function DetalleProducto() {
                 <div className="info-title-group">
                   <span className="info-label"><Package size={14} /> Producto</span>
                   <h2>{producto.nombre}</h2>
-                  <span className="info-category-tag">{producto.categoriaNombre || "Sin categoría"}</span>
+                  <span className="info-category-tag">{producto.categoriaNombre || 'Sin categoría'}</span>
                 </div>
 
                 <div className="info-description-minimal">
                   <span className="info-label"><Info size={14} /> Descripción</span>
-                  <p>{producto.descripcion || "Sin descripción proporcionada."}</p>
+                  <p>{producto.descripcion || 'Sin descripción proporcionada.'}</p>
                 </div>
 
                 <div className="detail-stats-minimal">
@@ -190,13 +162,13 @@ function DetalleProducto() {
                 </div>
 
                 <div className="profit-analysis-minimal">
-                   <div className="profit-header">
-                      <span><TrendingUp size={14} /> Análisis de Rentabilidad</span>
-                      <strong>{(((producto.precioVenta - producto.precioCompra) / producto.precioCompra) * 100).toFixed(1)}%</strong>
-                   </div>
-                   <div className="profit-bar-minimal">
-                      <div className="profit-bar-inner" style={{ width: `${Math.min((((producto.precioVenta - producto.precioCompra) / producto.precioCompra) * 100), 100)}%` }}></div>
-                   </div>
+                  <div className="profit-header">
+                    <span><TrendingUp size={14} /> Análisis de Rentabilidad</span>
+                    <strong>{(((producto.precioVenta - producto.precioCompra) / producto.precioCompra) * 100).toFixed(1)}%</strong>
+                  </div>
+                  <div className="profit-bar-minimal">
+                    <div className="profit-bar-inner" style={{ width: `${Math.min((((producto.precioVenta - producto.precioCompra) / producto.precioCompra) * 100), 100)}%` }} />
+                  </div>
                 </div>
               </div>
             </div>

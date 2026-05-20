@@ -1,99 +1,59 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { loginUser } from '../../../services/authServices';
-import Swal from 'sweetalert2';
+import { useAuth } from '../../../context/AuthContext';
 import './styles/Login.css';
 import logo from './LoginAssets/logo.png';
 
 function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [message, setMessage] = useState('');
-  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { isAuthenticated, login } = useAuth();
 
-  // 🔒 Verificación automática de autenticación
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const rol = localStorage.getItem('rol');
-
-    if (token && rol) {
-      if (rol === 'administrador') {
-        navigate('/admin');
-      } else {
-        navigate('/dashboard/inicio');
-      }
+    if (isAuthenticated) {
+      navigate('/dashboard/inicio', { replace: true });
     }
-  }, [navigate]);
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
 
     if (!username || !password) {
-      setMessage('Por favor, completa todos los campos.');
+      toast.error('Por favor, completa todos los campos.');
       return;
     }
 
+    setLoading(true);
+    const toastId = toast.loading('Iniciando sesión...');
+
     try {
-      Swal.fire({
-        title: "Iniciando sesión...",
-        text: "Por favor espera un momento",
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        },
-      });
-
       const data = await loginUser(username, password);
-
-      Swal.close();
-
-      Swal.fire({
-        icon: "success",
-        title: "Inicio de sesión exitoso",
-        text: "Bienvenido al panel de control",
-      });
-
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.usuario));
-      localStorage.setItem('rol', data.usuario.rol);
-
-      setUser(data.usuario);
-      setMessage('¡Inicio de sesión exitoso!');
-
-      if (data.usuario.rol === "administrador") {
-        navigate('/admin');
-      } else {
-        navigate('/dashboard/inicio');
-      }
+      login(data);
+      toast.success('¡Bienvenido al panel de control!', { id: toastId });
+      navigate('/dashboard/inicio');
     } catch (error) {
-      Swal.close();
-
-      Swal.fire({
-        icon: "error",
-        title: "Error de inicio de sesión",
-        text: error.response?.data?.mensaje || "Usuario o contraseña incorrectos. Por favor, inténtalo de nuevo.",
-        footer: '<a href="#">¿Necesitas ayuda con tu cuenta?</a>',
-      });
-
-      const errorMsg = error.response?.data?.mensaje || 'Error en el inicio de sesión.';
-      setMessage(errorMsg);
+      toast.error(
+        error.response?.data?.mensaje || 'Usuario o contraseña incorrectos.',
+        { id: toastId }
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="login-container">
-      <button
-        className="boton-home"
-        onClick={() => navigate('/')}
-      >
+      <button className="boton-home" onClick={() => navigate('/')}>
         <Home className="icono-home" />
         <span>Volver al Inicio</span>
       </button>
 
       <div className="login-wrapper">
-        {/* Sección izquierda - Imagen */}
         <div className="imagen-seccion">
           <div className="imagen-overlay" />
           <img
@@ -107,7 +67,6 @@ function Login() {
           </div>
         </div>
 
-        {/* Sección derecha - Formulario */}
         <div className="formulario-seccion">
           <div className="formulario-contenedor">
             <div className="encabezado">
@@ -116,12 +75,6 @@ function Login() {
               </button>
               <h2>Iniciar Sesión</h2>
             </div>
-
-            {message && (
-              <div className={`mensaje ${message.includes('exitoso') ? 'exito' : 'error'}`}>
-                {message}
-              </div>
-            )}
 
             <form onSubmit={handleLogin}>
               <div className="input-grupo">
@@ -148,16 +101,13 @@ function Login() {
                 />
               </div>
 
-              <button type="submit" className="boton-submit">
-                Iniciar Sesión
+              <button type="submit" className="boton-submit" disabled={loading}>
+                {loading ? 'Iniciando...' : 'Iniciar Sesión'}
               </button>
             </form>
 
             <div className="registro-link">
-              <button
-                className="boton-registro"
-                onClick={() => navigate('/registro')}
-              >
+              <button className="boton-registro" onClick={() => navigate('/registro')}>
                 ¿No tienes cuenta? Regístrate
               </button>
             </div>

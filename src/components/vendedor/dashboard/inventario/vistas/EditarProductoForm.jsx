@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Pencil } from "lucide-react";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
 import { updateProduct } from "../../../../../services/productServices";
 import { getCategoriesByUser } from "../../../../../services/categoryServices";
 import './styles/EditarProductoForm.css';
@@ -37,9 +37,7 @@ function EditarProductoForm({ producto, onClose, onUpdate, isInline = false }) {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const token = localStorage.getItem("token");
-        if (!token) throw new Error("Token no encontrado");
-        const data = await getCategoriesByUser(token);
+        const data = await getCategoriesByUser();
         setCategorias(data);
       } catch (error) {
         console.error("Error al obtener categorías:", error);
@@ -58,9 +56,6 @@ function EditarProductoForm({ producto, onClose, onUpdate, isInline = false }) {
     e.preventDefault();
     setCargando(true);
     try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("Token no encontrado");
-
       const categoriaSeleccionada = categorias.find(cat => String(cat.categoriaid) === String(categoriaId));
       if (!categoriaSeleccionada) throw new Error("Por favor selecciona una categoría válida");
 
@@ -74,15 +69,14 @@ function EditarProductoForm({ producto, onClose, onUpdate, isInline = false }) {
       formData.append("categoria_nombre", categoriaSeleccionada.nombre);
       imagenes.forEach((img) => formData.append("imagenes", img));
 
-      const response = await updateProduct(producto.productoid, formData, token);
+      const response = await updateProduct(producto.productoid, formData);
       if (!response) throw new Error("No se recibió respuesta del servidor.");
 
       onUpdate(response.producto || response);
       onClose();
-      Swal.fire({ icon: "success", title: "¡Producto actualizado!", text: "Los cambios se guardaron correctamente.", timer: 1800, showConfirmButton: false });
+      toast.success("Producto actualizado correctamente.");
     } catch (error) {
-      console.error("Error al actualizar el producto:", error);
-      Swal.fire({ icon: "error", title: "Error", text: error.message || "No se pudo actualizar el producto." });
+      toast.error(error.message || "No se pudo actualizar el producto.");
     } finally {
       setCargando(false);
     }

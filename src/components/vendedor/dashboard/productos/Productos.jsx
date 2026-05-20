@@ -12,13 +12,10 @@ const Productos = () => {
   const [paginasAExportar, setPaginasAExportar] = useState(1);
   const productosPorPagina = 20;
 
-  const token = localStorage.getItem('token');
-
   useEffect(() => {
     const fetchProductos = async () => {
-      if (!token) return;
       try {
-        const data = await getAllProducts(token);
+        const data = await getAllProducts();
         setProductos(data);
       } catch (error) {
         console.error('Error al obtener productos:', error);

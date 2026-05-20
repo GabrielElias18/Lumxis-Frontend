@@ -12,10 +12,12 @@ import {
   Truck,
   Tag,
   Settings,
+  Bot,
   X
 } from 'lucide-react';
 
-import Swal from 'sweetalert2';
+import { toast } from 'sonner';
+import { useAuth } from '../../../../context/AuthContext';
 import './styles/Sidebar.css';
 import logo from '../../login/LoginAssets/logo.png';
 
@@ -23,30 +25,19 @@ function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const { logout } = useAuth();
 
   const handleLogout = () => {
-    Swal.fire({
-      title: "¿Estás seguro?",
-      text: "Tu sesión se cerrará y deberás iniciar sesión nuevamente.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Sí, cerrar sesión",
-      cancelButtonText: "Cancelar"
-    }).then((result) => {
-      if (result.isConfirmed) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('rol');
-        Swal.fire({
-          title: "Sesión cerrada",
-          text: "Has cerrado sesión exitosamente.",
-          icon: "success",
-          confirmButtonColor: "#3085d6",
-          confirmButtonText: "OK"
-        }).then(() => navigate("/"));
-      }
+    toast('¿Cerrar sesión?', {
+      action: {
+        label: 'Cerrar sesión',
+        onClick: () => {
+          logout();
+          navigate('/');
+        },
+      },
+      cancel: { label: 'Cancelar', onClick: () => {} },
+      duration: 5000,
     });
   };
 
@@ -150,6 +141,19 @@ function Sidebar() {
             >
               <Truck className="menu-icon" />
               <span>Proveedores</span>
+            </Link>
+
+            {/* ASISTENTE */}
+            <div className="menu-divider" />
+            <span className="menu-section-title">Asistente</span>
+
+            <Link
+              to="asistente"
+              className={`menu-item ${isActive('asistente') ? 'active' : ''}`}
+              onClick={() => setIsOpen(false)}
+            >
+              <Bot className="menu-icon" />
+              <span>Asistente IA</span>
             </Link>
 
             {/* GESTIÓN */}

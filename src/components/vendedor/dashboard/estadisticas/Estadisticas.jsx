@@ -37,8 +37,7 @@ function Estadisticas() {
     const fetchStats = async () => {
       try {
         setCargando(true);
-        const token = localStorage.getItem('token');
-        const stats = await getDashboardStats(token, selectedYear);
+        const stats = await getDashboardStats(selectedYear);
         setData(stats);
       } catch (error) {
         console.error('Error al cargar estadísticas:', error);

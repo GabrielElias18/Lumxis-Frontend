@@ -1,20 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Plus, Tag, Search, Edit2, Trash2 } from 'lucide-react';
-import Swal from 'sweetalert2';
+import { toast } from 'sonner';
+import { useDebounce } from '../../../../hooks/useDebounce';
 import { getCategoriesByUser, createCategory, updateCategory, deleteCategory } from '../../../../services/categoryServices';
 import './categorias.css';
 
 function Categorias() {
   const [categorias, setCategorias] = useState([]);
-  const [busqueda, setBusqueda] = useState(() => localStorage.getItem("catSearchTerm") || "");
-  const [paginaActual, setPaginaActual] = useState(() => parseInt(localStorage.getItem("catCurrentPage")) || 1);
+  const [busqueda, setBusqueda] = useState(() => localStorage.getItem('catSearchTerm') || '');
+  const [paginaActual, setPaginaActual] = useState(() => parseInt(localStorage.getItem('catCurrentPage')) || 1);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [categoriaEditando, setCategoriaEditando] = useState(null);
   const [form, setForm] = useState({ nombre: '', descripcion: '' });
   const [cargando, setCargando] = useState(false);
   const registrosPorPagina = 10;
 
-  const token = localStorage.getItem('token');
+  const debouncedBusqueda = useDebounce(busqueda, 300);
 
   useEffect(() => {
     fetchCategorias();
@@ -22,23 +23,23 @@ function Categorias() {
 
   const fetchCategorias = async () => {
     try {
-      const data = await getCategoriesByUser(token);
+      const data = await getCategoriesByUser();
       setCategorias(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error al obtener categorías:', error);
+    } catch {
+      toast.error('Error al obtener categorías.');
     }
   };
 
   const handleSetBusqueda = (val) => {
     setBusqueda(val);
     setPaginaActual(1);
-    localStorage.setItem("catSearchTerm", val);
-    localStorage.setItem("catCurrentPage", 1);
+    localStorage.setItem('catSearchTerm', val);
+    localStorage.setItem('catCurrentPage', 1);
   };
 
   const handleSetPagina = (val) => {
     setPaginaActual(val);
-    localStorage.setItem("catCurrentPage", val);
+    localStorage.setItem('catCurrentPage', val);
   };
 
   const abrirCrear = () => {
@@ -49,10 +50,7 @@ function Categorias() {
 
   const abrirEditar = (categoria) => {
     setCategoriaEditando(categoria);
-    setForm({
-      nombre: categoria.nombre,
-      descripcion: categoria.descripcion,
-    });
+    setForm({ nombre: categoria.nombre, descripcion: categoria.descripcion });
     setMostrarModal(true);
   };
 
@@ -68,46 +66,43 @@ function Categorias() {
     setCargando(true);
     try {
       if (categoriaEditando) {
-        await updateCategory(categoriaEditando.categoriaid, form, token);
-        Swal.fire({ title: 'Actualizada', text: 'Categoría actualizada.', icon: 'success', timer: 1800, showConfirmButton: false });
+        await updateCategory(categoriaEditando.categoriaid, form);
+        toast.success('Categoría actualizada.');
       } else {
-        await createCategory(form, token);
-        Swal.fire({ title: 'Creada', text: 'Categoría registrada.', icon: 'success', timer: 1800, showConfirmButton: false });
+        await createCategory(form);
+        toast.success('Categoría registrada.');
       }
       await fetchCategorias();
       cerrarModal();
     } catch (error) {
-      Swal.fire({ title: 'Error', text: error.mensaje || 'Error al guardar.', icon: 'error' });
+      toast.error(error.mensaje || 'Error al guardar.');
     } finally {
       setCargando(false);
     }
   };
 
-  const handleEliminar = async (id, nombre) => {
-    const result = await Swal.fire({
-      title: `¿Eliminar "${nombre}"?`,
-      text: 'Esta acción podría afectar productos vinculados.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#DC2626',
-      cancelButtonColor: '#64748B',
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar',
+  const handleEliminar = (id, nombre) => {
+    toast(`¿Eliminar "${nombre}"?`, {
+      description: 'Esta acción podría afectar productos vinculados.',
+      action: {
+        label: 'Eliminar',
+        onClick: async () => {
+          try {
+            await deleteCategory(id);
+            setCategorias((prev) => prev.filter((c) => c.categoriaid !== id));
+            toast.success('Categoría eliminada.');
+          } catch {
+            toast.error('No se pudo eliminar.');
+          }
+        },
+      },
+      cancel: { label: 'Cancelar', onClick: () => {} },
     });
-    if (result.isConfirmed) {
-      try {
-        await deleteCategory(id, token);
-        setCategorias((prev) => prev.filter((c) => c.categoriaid !== id));
-        Swal.fire({ title: 'Eliminada', icon: 'success', timer: 1500, showConfirmButton: false });
-      } catch (error) {
-        Swal.fire({ title: 'Error', text: 'No se pudo eliminar.', icon: 'error' });
-      }
-    }
   };
 
   const categoriasFiltradas = categorias.filter((c) =>
-    c.nombre?.toLowerCase().includes(busqueda.toLowerCase()) ||
-    c.descripcion?.toLowerCase().includes(busqueda.toLowerCase())
+    c.nombre?.toLowerCase().includes(debouncedBusqueda.toLowerCase()) ||
+    c.descripcion?.toLowerCase().includes(debouncedBusqueda.toLowerCase())
   );
 
   const total = Math.ceil(categoriasFiltradas.length / registrosPorPagina);

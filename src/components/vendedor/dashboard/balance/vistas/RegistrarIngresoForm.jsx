@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { X, Search, ShoppingCart, Trash2, Plus, Minus, AlertCircle, CheckCircle2, ArrowLeft, FileText } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
 import { getCategoriesByUser } from "../../../../../services/categoryServices";
 import { getAllProducts } from "../../../../../services/productServices";
 import { createVentaBatch } from "../../../../../services/ventaService";
@@ -27,18 +27,16 @@ const RegistrarIngresoForm = () => {
     const cargarDatos = async () => {
       try {
         setCargando(true);
-        const token = localStorage.getItem("token");
         const [categoriasData, productosData, clientesData] = await Promise.all([
-          getCategoriesByUser(token),
-          getAllProducts(token),
-          getClientes(token)
+          getCategoriesByUser(),
+          getAllProducts(),
+          getClientes()
         ]);
         if (Array.isArray(categoriasData)) setCategorias(categoriasData);
         if (Array.isArray(productosData)) setProductos(productosData);
         if (Array.isArray(clientesData)) setClientes(clientesData);
-      } catch (error) {
-        console.error("Error al cargar datos:", error);
-        Swal.fire({ icon: "error", title: "Error", text: "No se pudieron cargar los productos" });
+      } catch {
+        toast.error("No se pudieron cargar los productos.");
       } finally {
         setCargando(false);
       }
@@ -107,23 +105,15 @@ const RegistrarIngresoForm = () => {
     if (carrito.length === 0) return;
     try {
       setProcesando(true);
-      const token = localStorage.getItem("token");
       const items = carrito.map(item => ({
         productoNombre: item.nombre,
         cantidad: item.cantidad,
       }));
-      await createVentaBatch(items, clienteId || null, token, descripcion);
-      await Swal.fire({
-        icon: "success",
-        title: "¡Venta Completada!",
-        text: `${carrito.reduce((s, i) => s + i.cantidad, 0)} unidades registradas correctamente.`,
-        timer: 2000,
-        showConfirmButton: false
-      });
+      await createVentaBatch(items, clienteId || null, descripcion);
+      toast.success(`¡Venta completada! ${carrito.reduce((s, i) => s + i.cantidad, 0)} unidades registradas.`);
       navigate("/dashboard/balance");
     } catch (error) {
-      console.error("Error al procesar la venta:", error);
-      Swal.fire({ icon: "error", title: "Error", text: error?.mensaje || "Ocurrió un problema al registrar la venta" });
+      toast.error(error?.mensaje || "Ocurrió un problema al registrar la venta.");
     } finally {
       setProcesando(false);
     }

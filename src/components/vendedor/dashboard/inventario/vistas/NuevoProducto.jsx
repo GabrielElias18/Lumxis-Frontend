@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Package, ImageIcon, Save, X, DollarSign, Layers, Info } from "lucide-react";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
 import { createProduct } from "../../../../../services/productServices";
 import { getCategoriesByUser } from "../../../../../services/categoryServices";
 import './styles/NuevoProducto.css';
@@ -27,8 +27,7 @@ function NuevoProducto() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const data = await getCategoriesByUser(token);
+        const data = await getCategoriesByUser();
         setCategorias(data);
       } catch (error) {
         console.error("Error al obtener categorías:", error);
@@ -47,7 +46,6 @@ function NuevoProducto() {
     event.preventDefault();
     setCargando(true);
     try {
-      const token = localStorage.getItem("token");
       const cat = categorias.find(c => String(c.categoriaid) === String(categoriaId));
       const formData = new FormData();
       formData.append("nombre", nombre);
@@ -59,11 +57,11 @@ function NuevoProducto() {
       if (cat) formData.append("categoriaNombre", cat.nombre);
       imagenes.forEach((img) => formData.append("imagenes", img));
 
-      await createProduct(formData, token);
-      Swal.fire({ title: "Creado", icon: "success", timer: 1500, showConfirmButton: false });
+      await createProduct(formData);
+      toast.success("Producto creado correctamente.");
       navigate('/dashboard/inventario');
-    } catch (error) {
-      Swal.fire({ title: "Error", text: "No se pudo crear el producto", icon: "error" });
+    } catch {
+      toast.error("No se pudo crear el producto.");
     } finally {
       setCargando(false);
     }

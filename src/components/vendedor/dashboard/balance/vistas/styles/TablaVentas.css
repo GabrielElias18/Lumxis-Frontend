@@ -181,3 +181,64 @@
   .tabla-container { overflow-x: auto; }
   .tabla-productos { min-width: 600px; }
 }
+
+/* Date range filter */
+.date-range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.date-range-sep {
+  color: var(--neutral-400, #94A3B8);
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.filter-input--date {
+  min-width: 130px;
+}
+
+/* Results count */
+.results-count {
+  padding: 0.4rem 1rem;
+  font-size: 0.75rem;
+  color: var(--neutral-400, #94A3B8);
+  font-weight: 500;
+  border-bottom: 1px solid var(--neutral-200, #E2E8F0);
+  background: white;
+}
+
+/* Page number buttons */
+.paginacion-pages {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.paginacion-page {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: var(--radius-sm, 6px);
+  background: white;
+  color: var(--neutral-600, #475569);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.paginacion-page:hover {
+  background: var(--neutral-100);
+  border-color: var(--neutral-300);
+}
+
+.paginacion-page--active {
+  background: var(--color-primary, #1565C0) !important;
+  border-color: var(--color-primary, #1565C0) !important;
+  color: white !important;
+}

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, TrendingDown, User, Package, Calendar, FileText, Hash, Trash2, Edit2, ShoppingBag } from 'lucide-react';
-import Swal from 'sweetalert2';
+import { toast } from 'sonner';
 import { getEgresoById, deleteEgreso, updateEgreso } from '../../../../../services/egresoService';
+import { getProveedores } from '../../../../../services/proveedorService';
+import EditTransaccionModal from './EditTransaccionModal';
 import './styles/DetalleTransaccion.css';
 
 const formatoMoneda = (v) =>
@@ -19,6 +21,8 @@ function DetalleEgreso() {
   const location = useLocation();
   const [egreso, setEgreso] = useState(location.state?.egreso ?? null);
   const [loading, setLoading] = useState(!location.state?.egreso || !location.state?.egreso?.detalles);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [proveedores, setProveedores] = useState([]);
 
   useEffect(() => {
     if (location.state?.egreso?.detalles) {
@@ -29,11 +33,10 @@ function DetalleEgreso() {
     const fetchEgreso = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('token');
-        const data = await getEgresoById(id, token);
+        const data = await getEgresoById(id);
         setEgreso(data);
       } catch {
-        Swal.fire('Error', 'No se pudo cargar el egreso', 'error');
+        toast.error('No se pudo cargar el egreso.');
         navigate('/dashboard/balance');
       } finally {
         setLoading(false);
@@ -42,53 +45,43 @@ function DetalleEgreso() {
     fetchEgreso();
   }, [id, navigate, location.state]);
 
-  const handleEliminar = async () => {
-    const result = await Swal.fire({
-      title: '¿Anular este egreso?',
-      text: 'El stock sumado será restado del inventario.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#DC2626',
-      confirmButtonText: 'Sí, anular',
-      cancelButtonText: 'Cancelar',
+  useEffect(() => {
+    getProveedores()
+      .then((data) => setProveedores(Array.isArray(data) ? data : data.proveedores || []))
+      .catch(() => {});
+  }, []);
+
+  const handleEliminar = () => {
+    toast('¿Anular este egreso?', {
+      description: 'El stock sumado será restado del inventario.',
+      action: {
+        label: 'Sí, anular',
+        onClick: async () => {
+          try {
+            await deleteEgreso(id);
+            toast.success('Egreso anulado. El inventario ha sido ajustado.');
+            navigate('/dashboard/balance');
+          } catch {
+            toast.error('No se pudo anular el egreso.');
+          }
+        },
+      },
+      cancel: { label: 'Cancelar', onClick: () => {} },
     });
-    if (result.isConfirmed) {
-      try {
-        const token = localStorage.getItem('token');
-        await deleteEgreso(id, token);
-        Swal.fire({ title: 'Egreso Anulado', text: 'El inventario ha sido ajustado.', icon: 'success', timer: 1500, showConfirmButton: false });
-        navigate('/dashboard/balance');
-      } catch {
-        Swal.fire('Error', 'No se pudo anular el egreso', 'error');
-      }
-    }
   };
 
-  const handleEditar = () => {
-    Swal.fire({
-      title: 'Editar descripción',
-      html: `
-        <div style="text-align:left">
-          <label style="font-size:0.8rem;font-weight:600;color:#64748b;display:block;margin-bottom:6px">Descripción</label>
-          <textarea id="descripcion" class="swal2-textarea" style="margin:0;width:100%">${egreso.descripcion ?? ''}</textarea>
-        </div>
-      `,
-      showCancelButton: true,
-      confirmButtonText: 'Guardar',
-      cancelButtonText: 'Cancelar',
-      preConfirm: () => ({ descripcion: document.getElementById('descripcion').value }),
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const token = localStorage.getItem('token');
-          await updateEgreso(id, result.value, token);
-          setEgreso((prev) => ({ ...prev, ...result.value }));
-          Swal.fire({ title: 'Actualizado', icon: 'success', timer: 1500, showConfirmButton: false });
-        } catch {
-          Swal.fire('Error', 'No se pudo actualizar', 'error');
-        }
-      }
-    });
+  const handleEditar = () => setShowEditModal(true);
+
+  const handleSaveEdit = async (data) => {
+    try {
+      await updateEgreso(id, data);
+      const proveedorObj = proveedores.find((p) => String(p.proveedorid) === String(data.proveedorid));
+      setEgreso((prev) => ({ ...prev, descripcion: data.descripcion, proveedorid: data.proveedorid, proveedor: proveedorObj || null }));
+      toast.success('Egreso actualizado.');
+    } catch {
+      toast.error('No se pudo actualizar.');
+      throw new Error();
+    }
   };
 
   if (loading) return <div className="view-loading"><div className="loader-spinner-dark" /></div>;
@@ -186,6 +179,19 @@ function DetalleEgreso() {
           </table>
         </div>
       </div>
+
+      <EditTransaccionModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSave={handleSaveEdit}
+        tipo="egreso"
+        descripcion={egreso.descripcion}
+        entidadId={egreso.proveedorid}
+        entidades={proveedores}
+        entidadLabel="Proveedor"
+        entidadKey="proveedorid"
+        entidadNombreKey="nombreProveedor"
+      />
     </div>
   );
 }

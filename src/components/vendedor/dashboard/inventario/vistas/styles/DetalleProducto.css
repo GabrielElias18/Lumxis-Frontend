@@ -1,7 +1,65 @@
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .product-detail-view {
   padding: 30px;
   background-color: var(--neutral-100);
   animation: fadeIn 0.4s ease-out;
+}
+
+/* ── Header ── */
+.product-detail-view .view-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  max-width: 1100px;
+  margin: 0 auto 30px;
+}
+
+.product-detail-view .btn-circle-back {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--neutral-200);
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--neutral-600);
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+.product-detail-view .btn-circle-back:hover {
+  background: var(--neutral-50);
+  color: var(--color-primary);
+  transform: translateX(-3px);
+  border-color: var(--color-primary-soft);
+}
+
+.product-detail-view .header-text h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--neutral-900);
+}
+
+/* ── Spinner ── */
+.loader-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--neutral-200);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 .detail-breadcrumb {

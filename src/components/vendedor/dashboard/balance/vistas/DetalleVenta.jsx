@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, User, Package, Calendar, FileText, Hash, Trash2, Edit2, ShoppingBag } from 'lucide-react';
-import Swal from 'sweetalert2';
+import { toast } from 'sonner';
 import { getVentaById, deleteVenta, updateVenta } from '../../../../../services/ventaService';
+import { getClientes } from '../../../../../services/clienteService';
+import EditTransaccionModal from './EditTransaccionModal';
 import './styles/DetalleTransaccion.css';
 
 const formatoMoneda = (v) =>
@@ -19,6 +21,8 @@ function DetalleVenta() {
   const location = useLocation();
   const [venta, setVenta] = useState(location.state?.venta ?? null);
   const [loading, setLoading] = useState(!location.state?.venta || !location.state?.venta?.detalles);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [clientes, setClientes] = useState([]);
 
   useEffect(() => {
     if (location.state?.venta?.detalles) {
@@ -29,11 +33,10 @@ function DetalleVenta() {
     const fetchVenta = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('token');
-        const data = await getVentaById(id, token);
+        const data = await getVentaById(id);
         setVenta(data);
       } catch {
-        Swal.fire('Error', 'No se pudo cargar la venta', 'error');
+        toast.error('No se pudo cargar la venta.');
         navigate('/dashboard/balance');
       } finally {
         setLoading(false);
@@ -42,53 +45,41 @@ function DetalleVenta() {
     fetchVenta();
   }, [id, navigate, location.state]);
 
-  const handleEliminar = async () => {
-    const result = await Swal.fire({
-      title: '¿Anular esta venta?',
-      text: 'El stock de todos los productos será devuelto al inventario.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#DC2626',
-      confirmButtonText: 'Sí, anular',
-      cancelButtonText: 'Cancelar',
+  useEffect(() => {
+    getClientes().then(setClientes).catch(() => {});
+  }, []);
+
+  const handleEliminar = () => {
+    toast('¿Anular esta venta?', {
+      description: 'El stock de todos los productos será devuelto al inventario.',
+      action: {
+        label: 'Sí, anular',
+        onClick: async () => {
+          try {
+            await deleteVenta(id);
+            toast.success('Venta anulada. El stock ha sido revertido.');
+            navigate('/dashboard/balance');
+          } catch {
+            toast.error('No se pudo anular la venta.');
+          }
+        },
+      },
+      cancel: { label: 'Cancelar', onClick: () => {} },
     });
-    if (result.isConfirmed) {
-      try {
-        const token = localStorage.getItem('token');
-        await deleteVenta(id, token);
-        Swal.fire({ title: 'Venta Anulada', text: 'El stock ha sido revertido.', icon: 'success', timer: 1500, showConfirmButton: false });
-        navigate('/dashboard/balance');
-      } catch {
-        Swal.fire('Error', 'No se pudo anular la venta', 'error');
-      }
-    }
   };
 
-  const handleEditar = () => {
-    Swal.fire({
-      title: 'Editar descripción',
-      html: `
-        <div style="text-align:left">
-          <label style="font-size:0.8rem;font-weight:600;color:#64748b;display:block;margin-bottom:6px">Descripción</label>
-          <textarea id="descripcion" class="swal2-textarea" style="margin:0;width:100%">${venta.descripcion ?? ''}</textarea>
-        </div>
-      `,
-      showCancelButton: true,
-      confirmButtonText: 'Guardar',
-      cancelButtonText: 'Cancelar',
-      preConfirm: () => ({ descripcion: document.getElementById('descripcion').value }),
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const token = localStorage.getItem('token');
-          await updateVenta(id, result.value, token);
-          setVenta((prev) => ({ ...prev, ...result.value }));
-          Swal.fire({ title: 'Actualizado', icon: 'success', timer: 1500, showConfirmButton: false });
-        } catch {
-          Swal.fire('Error', 'No se pudo actualizar', 'error');
-        }
-      }
-    });
+  const handleEditar = () => setShowEditModal(true);
+
+  const handleSaveEdit = async (data) => {
+    try {
+      await updateVenta(id, data);
+      const clienteObj = clientes.find((c) => String(c.clienteid) === String(data.clienteid));
+      setVenta((prev) => ({ ...prev, descripcion: data.descripcion, clienteid: data.clienteid, cliente: clienteObj || null }));
+      toast.success('Venta actualizada.');
+    } catch {
+      toast.error('No se pudo actualizar.');
+      throw new Error();
+    }
   };
 
   if (loading) return <div className="view-loading"><div className="loader-spinner-dark" /></div>;
@@ -186,6 +177,19 @@ function DetalleVenta() {
           </table>
         </div>
       </div>
+
+      <EditTransaccionModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSave={handleSaveEdit}
+        tipo="venta"
+        descripcion={venta.descripcion}
+        entidadId={venta.clienteid}
+        entidades={clientes}
+        entidadLabel="Cliente"
+        entidadKey="clienteid"
+        entidadNombreKey="nombreCliente"
+      />
     </div>
   );
 }

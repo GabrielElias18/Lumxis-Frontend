@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { User, Mail, Phone, Edit2, Shield } from 'lucide-react';
-import Swal from 'sweetalert2';
+import { toast } from 'sonner';
 import axiosInstance from '../../../../api/axiosConfig';
 import './Usuarios.css';
 
@@ -21,7 +21,7 @@ const Personal = () => {
     axiosInstance
       .get('/api/usuarios')
       .then((res) => setUsuario((res.data.usuarios || [])[0] ?? null))
-      .catch(() => Swal.fire('Error', 'No se pudo cargar la información.', 'error'))
+      .catch(() => toast.error('No se pudo cargar la información.'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -53,9 +53,9 @@ const Personal = () => {
         telefono: form.telefono,
       }));
       cerrarModal();
-      Swal.fire({ title: 'Actualizado', icon: 'success', timer: 1500, showConfirmButton: false });
+      toast.success('Información actualizada correctamente.');
     } catch {
-      Swal.fire('Error', 'No se pudo actualizar la información.', 'error');
+      toast.error('No se pudo actualizar la información.');
     } finally {
       setGuardando(false);
     }

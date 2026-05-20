@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Home } from 'lucide-react';
-import Swal from 'sweetalert2';
+import { toast } from 'sonner';
 import { registerUser } from '../../../services/authServices';
 import './styles/Registro.css';
 import logo from './LoginAssets/logo.png'
@@ -32,15 +32,12 @@ function Registro() {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error en la contraseña',
-        text: 'Las contraseñas no coinciden.',
-      });
+      toast.error('Las contraseñas no coinciden.');
       return;
     }
 
     setLoading(true);
+    const toastId = toast.loading('Registrando negocio...');
 
     try {
       await registerUser({
@@ -53,21 +50,11 @@ function Registro() {
         contraseña: formData.password
       });
 
-      Swal.fire({
-        icon: 'success',
-        title: 'Registro exitoso',
-        text: 'Negocio y administrador registrados. Serás redirigido al login.',
-        timer: 2000,
-        showConfirmButton: false,
-        willClose: () => navigate('/login')
-      });
+      toast.success('Negocio registrado. Redirigiendo al login...', { id: toastId });
+      setTimeout(() => navigate('/login'), 1500);
 
     } catch (error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error en el registro',
-        text: error.message || 'Ocurrió un problema al registrar el negocio.',
-      });
+      toast.error(error.response?.data?.mensaje || error.message || 'Ocurrió un problema al registrar el negocio.', { id: toastId });
     } finally {
       setLoading(false);
     }

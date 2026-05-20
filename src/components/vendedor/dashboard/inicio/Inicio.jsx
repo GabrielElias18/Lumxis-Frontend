@@ -23,8 +23,7 @@ function Inicio() {
       try { setUser(JSON.parse(userData)); } catch { localStorage.removeItem('user'); }
     }
 
-    const token = localStorage.getItem('token');
-    Promise.all([getVentas(token), getEgresos(token), getAllProducts(token)])
+    Promise.all([getVentas(), getEgresos(), getAllProducts()])
       .then(([v, e, p]) => {
         setVentas(v);
         setEgresos(e);

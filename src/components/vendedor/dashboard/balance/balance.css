@@ -195,3 +195,67 @@
   .top-actions { flex-direction: column; }
   .action-button { width: 100%; }
 }
+
+/* Period row */
+.balance-period-row {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+/* Skeleton shimmer */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.metric-skeleton {
+  height: 1.4rem;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite;
+  margin-top: 0.25rem;
+  width: 80%;
+}
+
+/* Margen badge */
+.metric-margen {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-success, #059669);
+  margin-top: 0.15rem;
+  display: block;
+}
+
+.metric-margen--neg {
+  color: var(--color-danger, #DC2626);
+}
+
+/* Trend chart */
+.trend-chart-container {
+  width: 100%;
+  background: white;
+  border-radius: var(--radius-md, 8px);
+  padding: 0.875rem;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
+  margin-bottom: 0.75rem;
+}
+
+.trend-chart-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--neutral-500, #64748B);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chart-skeleton {
+  height: 160px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite;
+}

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Truck, Search, Edit2, Trash2 } from 'lucide-react';
-import Swal from 'sweetalert2';
+import { toast } from 'sonner';
+import { useDebounce } from '../../../../hooks/useDebounce';
 import { getProveedores, createProveedor, updateProveedor, deleteProveedor } from '../../../../services/proveedorService';
 import './proveedores.css';
 
@@ -13,17 +14,28 @@ const formInicial = {
   tipoCuenta: 'Ahorros', categoriaSuministro: [], estado: 'Activo',
 };
 
+const SkeletonRow = () => (
+  <tr>
+    {[55, 40, 25, 30, 30, 15, 15].map((w, i) => (
+      <td key={i}>
+        <div style={{ height: 12, borderRadius: 4, background: 'linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%)', backgroundSize: '800px 100%', animation: 'shimmer 1.4s infinite', width: `${w}%` }} />
+      </td>
+    ))}
+  </tr>
+);
+
 function Proveedores() {
   const [proveedores, setProveedores] = useState([]);
-  const [busqueda, setBusqueda] = useState(() => localStorage.getItem("provSearchTerm") || "");
-  const [paginaActual, setPaginaActual] = useState(() => parseInt(localStorage.getItem("provCurrentPage")) || 1);
+  const [loading, setLoading] = useState(true);
+  const [busqueda, setBusqueda] = useState(() => localStorage.getItem('provSearchTerm') || '');
+  const [paginaActual, setPaginaActual] = useState(() => parseInt(localStorage.getItem('provCurrentPage')) || 1);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [proveedorEditando, setProveedorEditando] = useState(null);
   const [form, setForm] = useState(formInicial);
   const [cargando, setCargando] = useState(false);
   const registrosPorPagina = 10;
 
-  const token = localStorage.getItem('token');
+  const debouncedBusqueda = useDebounce(busqueda, 300);
 
   useEffect(() => {
     fetchProveedores();
@@ -31,23 +43,25 @@ function Proveedores() {
 
   const fetchProveedores = async () => {
     try {
-      const data = await getProveedores(token);
+      const data = await getProveedores();
       setProveedores(data);
-    } catch (error) {
-      console.error('Error al obtener proveedores:', error);
+    } catch {
+      toast.error('Error al obtener proveedores.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSetBusqueda = (val) => {
     setBusqueda(val);
     setPaginaActual(1);
-    localStorage.setItem("provSearchTerm", val);
-    localStorage.setItem("provCurrentPage", 1);
+    localStorage.setItem('provSearchTerm', val);
+    localStorage.setItem('provCurrentPage', 1);
   };
 
   const handleSetPagina = (val) => {
     setPaginaActual(val);
-    localStorage.setItem("provCurrentPage", val);
+    localStorage.setItem('provCurrentPage', val);
   };
 
   const abrirCrear = () => {
@@ -59,16 +73,10 @@ function Proveedores() {
   const abrirEditar = (p) => {
     setProveedorEditando(p);
     setForm({
-      razonSocial: p.razonSocial || '',
-      nombreProveedor: p.nombreProveedor || '',
-      nit: p.nit || '',
-      telefono: p.telefono || '',
-      correo: p.correo || '',
-      direccion: p.direccion || '',
-      banco: p.banco || '',
-      numeroCuenta: p.numeroCuenta || '',
-      tipoCuenta: p.tipoCuenta || 'Ahorros',
-      categoriaSuministro: p.categoriaSuministro || [],
+      razonSocial: p.razonSocial || '', nombreProveedor: p.nombreProveedor || '',
+      nit: p.nit || '', telefono: p.telefono || '', correo: p.correo || '',
+      direccion: p.direccion || '', banco: p.banco || '', numeroCuenta: p.numeroCuenta || '',
+      tipoCuenta: p.tipoCuenta || 'Ahorros', categoriaSuministro: p.categoriaSuministro || [],
       estado: p.estado || 'Activo',
     });
     setMostrarModal(true);
@@ -86,47 +94,43 @@ function Proveedores() {
     setCargando(true);
     try {
       if (proveedorEditando) {
-        await updateProveedor(proveedorEditando.proveedorid, form, token);
-        Swal.fire({ title: 'Actualizado', text: 'Proveedor actualizado.', icon: 'success', timer: 1800, showConfirmButton: false });
+        await updateProveedor(proveedorEditando.proveedorid, form);
+        toast.success('Proveedor actualizado.');
       } else {
-        await createProveedor(form, token);
-        Swal.fire({ title: 'Creado', text: 'Proveedor registrado.', icon: 'success', timer: 1800, showConfirmButton: false });
+        await createProveedor(form);
+        toast.success('Proveedor registrado.');
       }
       await fetchProveedores();
       cerrarModal();
     } catch (error) {
-      Swal.fire({ title: 'Error', text: error.mensaje || 'Error al guardar.', icon: 'error' });
+      toast.error(error.mensaje || 'Error al guardar.');
     } finally {
       setCargando(false);
     }
   };
 
-  const handleEliminar = async (id, nombre) => {
-    const result = await Swal.fire({
-      title: `¿Eliminar a ${nombre}?`,
-      text: 'Esta acción no se puede deshacer.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#DC2626',
-      cancelButtonColor: '#64748B',
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar',
+  const handleEliminar = (id, nombre) => {
+    toast(`¿Eliminar a ${nombre}?`, {
+      action: {
+        label: 'Eliminar',
+        onClick: async () => {
+          try {
+            await deleteProveedor(id);
+            setProveedores((prev) => prev.filter((p) => p.proveedorid !== id));
+            toast.success('Proveedor eliminado.');
+          } catch {
+            toast.error('No se pudo eliminar.');
+          }
+        },
+      },
+      cancel: { label: 'Cancelar', onClick: () => {} },
     });
-    if (result.isConfirmed) {
-      try {
-        await deleteProveedor(id, token);
-        setProveedores((prev) => prev.filter((p) => p.proveedorid !== id));
-        Swal.fire({ title: 'Eliminado', icon: 'success', timer: 1500, showConfirmButton: false });
-      } catch (error) {
-        Swal.fire({ title: 'Error', text: 'No se pudo eliminar.', icon: 'error' });
-      }
-    }
   };
 
   const filtrados = proveedores.filter((p) =>
-    p.nombreProveedor?.toLowerCase().includes(busqueda.toLowerCase()) ||
-    p.razonSocial?.toLowerCase().includes(busqueda.toLowerCase()) ||
-    p.nit?.includes(busqueda)
+    p.nombreProveedor?.toLowerCase().includes(debouncedBusqueda.toLowerCase()) ||
+    p.razonSocial?.toLowerCase().includes(debouncedBusqueda.toLowerCase()) ||
+    p.nit?.includes(debouncedBusqueda)
   );
 
   const total = Math.ceil(filtrados.length / registrosPorPagina);
@@ -135,6 +139,8 @@ function Proveedores() {
 
   return (
     <div className="proveedores-main">
+      <style>{`@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }`}</style>
+
       <div className="proveedores-header">
         <div className="proveedores-header-left">
           <Truck size={18} className="proveedores-header-icon" />
@@ -172,7 +178,9 @@ function Proveedores() {
             </tr>
           </thead>
           <tbody>
-            {pagina.length > 0 ? pagina.map((p) => (
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
+            ) : pagina.length > 0 ? pagina.map((p) => (
               <tr key={p.proveedorid}>
                 <td className="proveedores-td-razon">{p.razonSocial}</td>
                 <td>{p.nombreProveedor}</td>
@@ -199,7 +207,7 @@ function Proveedores() {
         </table>
       </div>
 
-      {total > 1 && (
+      {!loading && total > 1 && (
         <div className="proveedores-paginacion">
           <button onClick={() => handleSetPagina(paginaActual - 1)} disabled={paginaActual === 1}>Anterior</button>
           <span>Página {paginaActual} de {total}</span>
