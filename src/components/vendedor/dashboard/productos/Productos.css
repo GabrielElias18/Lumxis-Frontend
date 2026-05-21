@@ -161,6 +161,15 @@
 
 .productos-td-nombre { font-weight: 600; color: var(--neutral-900, #0F172A); }
 
+.productos-td-barcode {
+  font-family: monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  color: var(--neutral-700, #334155);
+}
+
+.productos-td-empty { color: var(--neutral-300, #CBD5E1); }
+
 /* Empty */
 .productos-empty {
   text-align: center;

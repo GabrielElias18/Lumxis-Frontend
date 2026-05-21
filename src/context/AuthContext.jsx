@@ -13,11 +13,12 @@ const isTokenValid = (token) => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [token] = useState(() => {
+  const [token, setToken] = useState(() => {
     const t = localStorage.getItem('token');
     return isTokenValid(t) ? t : null;
   });
-  const [user] = useState(() => {
+
+  const [user, setUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem('user')); } catch { return null; }
   });
 
@@ -25,21 +26,25 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.usuario));
     localStorage.setItem('rol', data.usuario.rol);
+    setToken(data.token);
+    setUser(data.usuario);
   }, []);
 
   const logout = useCallback(() => {
     try {
-      const user = JSON.parse(localStorage.getItem('user'));
-      if (user?.id) localStorage.removeItem(`chat_history_${user.id}`);
+      const u = JSON.parse(localStorage.getItem('user'));
+      if (u?.id) localStorage.removeItem(`chat_history_${u.id}`);
     } catch {}
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('rol');
     localStorage.removeItem('balancePeriod');
     localStorage.removeItem('activeBalanceTab');
+    setToken(null);
+    setUser(null);
   }, []);
 
-  const isAuthenticated = isTokenValid(localStorage.getItem('token'));
+  const isAuthenticated = !!token && isTokenValid(token);
 
   return (
     <AuthContext.Provider value={{ user, token, isAuthenticated, login, logout }}>

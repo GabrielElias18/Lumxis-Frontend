@@ -10,11 +10,6 @@ export const getVentaById = async (id) => {
   return response.data;
 };
 
-export const createVentaBatch = async (items, clienteid, descripcion = '') => {
-  const response = await axiosInstance.post('/api/ventas', { items, clienteid, descripcion });
-  return response.data;
-};
-
 export const updateVenta = async (id, data) => {
   const response = await axiosInstance.patch(`/api/ventas/${id}`, data);
   return response.data;

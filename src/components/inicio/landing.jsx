@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
+  Sparkles,
+  Bot,
   Package,
-  BarChart as ChartBar,
+  BarChart3,
   DollarSign,
   ArrowUpRight,
   TrendingUp,
@@ -11,25 +13,117 @@ import {
   Truck,
   Clock,
   HeartHandshake,
+  ArrowRight,
+  Send,
+  Check,
+  Sun,
+  Moon
 } from "lucide-react";
 import "./landing.css";
+
 function Landing() {
+  // Theme state: light or dark
+  const [theme, setTheme] = useState(() => {
+    const savedTheme = localStorage.getItem("lumxis-landing-theme");
+    if (savedTheme === "light" || savedTheme === "dark") {
+      return savedTheme;
+    }
+    if (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) {
+      return "light";
+    }
+    return "dark"; // Default to dark for high-tech premium feel
+  });
+
+  // AI Chatbot simulator state
+  const [chatMessages, setChatMessages] = useState([
+    {
+      role: "assistant",
+      content: "👋 ¡Hola! Soy el **Asistente Inteligente de Lumxis**. Estoy aquí para ayudarte a gestionar tu negocio. Haz clic en cualquiera de las consultas rápidas de abajo para ver cómo puedo ayudarte en tiempo real:"
+    }
+  ]);
+  const [isTyping, setIsTyping] = useState(false);
+  const chatEndRef = useRef(null);
+
+  const predefinedQueries = [
+    {
+      id: "ventas",
+      label: "📈 Ventas de hoy",
+      query: "¿Cuáles fueron las ventas de hoy?",
+      reply: "Hoy has registrado **5 ventas** por un total de **$1.850.000 COP**.\n\n📊 *Detalle de transacciones:*\n• **Venta #1024**: $420.000 COP (Cliente: Juan Pérez)\n• **Venta #1025**: $150.000 COP (Consumidor Final)\n• **Venta #1026**: $680.000 COP (Cliente: TechRetail)\n• **Venta #1027**: $320.000 COP (Consumidor Final)\n• **Venta #1028**: $280.000 COP (Cliente: María Gómez)\n\nEl método de pago principal fue **Transferencia Bancaria (60%)**."
+    },
+    {
+      id: "stock",
+      label: "⚠️ Stock bajo",
+      query: "¿Qué productos tienen bajo stock?",
+      reply: "⚠️ **Alerta de Stock Bajo**:\nHe encontrado **3 productos** que están por debajo de su umbral mínimo configurado:\n\n1. 📦 **Arroz Diana 500g**\n   • Disponible: 4 unidades | Mínimo: 15 unidades\n2. 📦 **Aceite Girasol 1L**\n   • Disponible: 2 unidades | Mínimo: 10 unidades\n3. 📦 **Leche Alquería Entera 1L**\n   • Disponible: 5 unidades | Mínimo: 20 unidades\n\n¿Deseas que prepare un reporte para realizar un pedido a sus respectivos proveedores?"
+    },
+    {
+      id: "balance",
+      label: "📊 Balance mensual",
+      query: "¿Cuál es el balance financiero de este mes?",
+      reply: "📊 **Balance Financiero (Mayo 2026)**:\n\n• **Ingresos Totales (Ventas):** $12.450.000 COP\n• **Egresos Totales (Compras/Gastos):** $4.820.000 COP\n• 📉 **Margen Neto:** **$7.630.000 COP**\n• 🎯 **Rentabilidad:** **61.28%**\n\n*Nota:* El balance es sumamente positivo. Los egresos principales corresponden al reabastecimiento de mercancía con el proveedor *GrowthMart*."
+    }
+  ];
+
+  const handleQueryClick = (item) => {
+    if (isTyping) return;
+
+    if (chatMessages[chatMessages.length - 1]?.content === item.query) return;
+
+    // Append user message
+    setChatMessages((prev) => [...prev, { role: "user", content: item.query }]);
+    setIsTyping(true);
+
+    // Simulate typing delay
+    setTimeout(() => {
+      setIsTyping(false);
+      setChatMessages((prev) => [...prev, { role: "assistant", content: item.reply }]);
+    }, 1200);
+  };
+
+  const toggleTheme = () => {
+    setTheme((prev) => {
+      const nextTheme = prev === "dark" ? "light" : "dark";
+      localStorage.setItem("lumxis-landing-theme", nextTheme);
+      return nextTheme;
+    });
+  };
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages, isTyping]);
+
   return (
-    <div className="app">
+    <div className={`app theme-${theme}`}>
+      {/* Background Decorative Blobs */}
+      <div className="bg-blob blob-purple"></div>
+      <div className="bg-blob blob-cyan"></div>
+      <div className="bg-blob blob-blue"></div>
+
       {/* Navigation */}
-      <nav className="navbar">
+      <nav className="navbar anim-fade-down">
         <div className="nav-container">
           <div className="logo">
-            <Package className="logo-icon" />
-            <span style={{ color: '#1565C0' }}>OrderEasy</span>
+            <Sparkles className="logo-icon animate-pulse-slow" />
+            <span className="logo-text">Lumxis</span>
+            <span className="logo-badge">ERP + IA</span>
           </div>
 
           <div className="nav-buttons">
+            <button 
+              onClick={toggleTheme} 
+              className="theme-toggle-btn" 
+              aria-label="Cambiar tema"
+              title={theme === "dark" ? "Cambiar a Modo Claro" : "Cambiar a Modo Oscuro"}
+            >
+              {theme === "dark" ? <Sun className="toggle-icon sun" /> : <Moon className="toggle-icon moon" />}
+            </button>
+
             <Link className="btn-secondary no-underline" to="/login">
               Iniciar Sesión
             </Link>
-            <Link className="btn-primary no-underline" to="/registro">
-              Registrarse
+            <Link className="btn-primary no-underline btn-glow" to="/registro">
+              Registrarse Gratis
             </Link>
           </div>
         </div>
@@ -37,35 +131,131 @@ function Landing() {
 
       {/* Hero Section */}
       <section className="hero">
-        <div className="container">
-          <h1 className="fade-in">Simplifica tu Gestión de Inventario</h1>
-          <p className="subtitle">
-            Transforma las operaciones de tu negocio con la solución gratuita de
-            OrderEasy. Controla ventas, gestiona gastos y haz crecer tu negocio
-            con confianza.
-          </p>
-          <div className="button-group">
-            <Link
-              to="/registro"
-              className="btn-primary flex items-center no-underline"
-            >
-              Comenzar Gratis <ArrowUpRight className="icon" />
-            </Link>
-            <button className="btn-outline">Agendar Demo</button>
-            <button className="btn-outline">Ver Video</button>
+        <div className="container hero-grid">
+          <div className="hero-content text-left anim-fade-left">
+            <div className="promo-badge">
+              <Bot className="promo-icon" />
+              <span>ERP Inteligente con Asistente de IA</span>
+            </div>
+            <h1 className="hero-title">
+              La gestión de tu negocio, <span className="gradient-text">simplificada e impulsada</span> por IA
+            </h1>
+            <p className="subtitle text-left">
+              Controla tu inventario, procesa ventas en segundos, supervisa turnos de caja y toma decisiones financieras respaldadas por un asistente inteligente en lenguaje natural. **Lumxis** une potencia y sencillez en una sola interfaz diseñada para crecer contigo.
+            </p>
+            <div className="button-group">
+              <Link
+                to="/registro"
+                className="btn-primary flex items-center no-underline btn-glow btn-lg"
+              >
+                Comenzar Gratis <ArrowUpRight className="icon" />
+              </Link>
+              <a href="#demo-asistente" className="btn-outline btn-lg flex items-center gap-2">
+                Probar Asistente de IA <ArrowRight className="w-4 h-4 text-primary" />
+              </a>
+            </div>
+            <div className="hero-stats">
+              <div className="stat-item">
+                <ShieldCheck className="stat-icon" />
+                <span>Seguro y Confiable</span>
+              </div>
+              <div className="stat-item">
+                <Users className="stat-icon" />
+                <span>Control Multiusuario</span>
+              </div>
+              <div className="stat-item">
+                <Clock className="stat-icon" />
+                <span>Monitoreo de Caja 24/7</span>
+              </div>
+            </div>
           </div>
-          <div className="hero-stats">
-            <div className="stat-item">
-              <ShieldCheck className="stat-icon" />
-              <span>100% Gratuito</span>
-            </div>
-            <div className="stat-item">
-              <Users className="stat-icon" />
-              <span>Sin Tarjeta de Crédito</span>
-            </div>
-            <div className="stat-item">
-              <Clock className="stat-icon" />
-              <span>Soporte 24/7</span>
+
+          {/* Interactive Chatbot Mockup */}
+          <div className="hero-visual anim-fade-right" id="demo-asistente">
+            <div className="chat-simulator-card glass-panel">
+              <div className="chat-header">
+                <div className="chat-user-info">
+                  <div className="chat-avatar-pulse">
+                    <Bot className="chat-avatar-icon" />
+                  </div>
+                  <div>
+                    <h4>Asistente Lumxis IA</h4>
+                    <span className="chat-status"><span className="status-dot"></span>En línea (Llama-3.1 8B)</span>
+                  </div>
+                </div>
+                <span className="chat-header-badge">Demo Activa</span>
+              </div>
+
+              <div className="chat-body-viewport">
+                {chatMessages.map((msg, i) => (
+                  <div key={i} className={`chat-message-bubble ${msg.role} msg-fade-in`}>
+                    {msg.role === "assistant" && (
+                      <div className="assistant-avatar">
+                        <Sparkles className="avatar-spark" />
+                      </div>
+                    )}
+                    <div className="message-content-wrapper">
+                      <p className="message-text">
+                        {msg.content.split("\n").map((line, idx) => {
+                          let formattedLine = line;
+                          const boldRegex = /\*\*(.*?)\*\*/g;
+                          const parts = [];
+                          let lastIndex = 0;
+                          let match;
+
+                          while ((match = boldRegex.exec(line)) !== null) {
+                            parts.push(line.substring(lastIndex, match.index));
+                            parts.push(<strong key={match.index}>{match[1]}</strong>);
+                            lastIndex = boldRegex.lastIndex;
+                          }
+                          parts.push(line.substring(lastIndex));
+
+                          return (
+                            <React.Fragment key={idx}>
+                              {parts.length > 1 ? parts : formattedLine}
+                              {idx < msg.content.split("\n").length - 1 && <br />}
+                            </React.Fragment>
+                          );
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {isTyping && (
+                  <div className="chat-message-bubble assistant msg-fade-in">
+                    <div className="assistant-avatar">
+                      <Sparkles className="avatar-spark animate-spin-slow" />
+                    </div>
+                    <div className="message-content-wrapper typing-container">
+                      <span className="dot"></span>
+                      <span className="dot"></span>
+                      <span className="dot"></span>
+                    </div>
+                  </div>
+                )}
+                <div ref={chatEndRef} />
+              </div>
+
+              <div className="chat-input-simulator">
+                <div className="chat-options-pills">
+                  {predefinedQueries.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => handleQueryClick(item)}
+                      className="option-pill"
+                      disabled={isTyping}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="chat-input-box">
+                  <span className="input-placeholder">Haz clic en un botón de arriba para preguntar...</span>
+                  <div className="send-btn-mock">
+                    <Send className="w-4 h-4 text-slate-500" />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -74,73 +264,67 @@ function Landing() {
       {/* Features */}
       <section className="features">
         <div className="container">
-          <h2>Todo lo que necesitas para triunfar</h2>
+          <div className="section-header text-center anim-fade-up">
+            <span className="section-tag">Funcionalidades del Sistema</span>
+            <h2>Todo lo que necesitas para controlar tu negocio</h2>
+            <p className="section-subtitle">
+              Lumxis está diseñado de punta a punta para cubrir las necesidades operativas de comercios modernos y emprendedores.
+            </p>
+          </div>
           <div className="features-grid">
-            <div className="feature-card">
-              <ChartBar className="feature-icon" />
-              <h3>Análisis en Tiempo Real</h3>
+            <div className="feature-card glass-panel card-hover-lift anim-fade-up">
+              <div className="feature-icon-wrapper purple-glow">
+                <Bot className="feature-icon" />
+              </div>
+              <h3>Asistente de IA Inteligente</h3>
               <p>
-                Monitorea tus métricas de ventas e inventario en tiempo real con
-                paneles intuitivos.
+                Realiza consultas directas de tus ventas, egresos y niveles de stock. Pídele al asistente que modifique precios o elimine productos con confirmaciones dinámicas en pantalla.
               </p>
-              <a href="#" className="learn-more">
-                Empezar →
-              </a>
             </div>
-            <div className="feature-card">
-              <DollarSign className="feature-icon" />
-              <h3>Gestión de Ventas</h3>
+            <div className="feature-card glass-panel card-hover-lift anim-fade-up">
+              <div className="feature-icon-wrapper cyan-glow">
+                <BarChart3 className="feature-icon" />
+              </div>
+              <h3>Terminal POS y Caja Registradora</h3>
               <p>
-                Procesa ventas rápidamente y mantén registros detallados de
-                transacciones.
+                Registra ventas al instante y lleva un control riguroso de turnos de caja. Supervisa la apertura, balance y cierre de cada turno de tus vendedores con registro de descuadres.
               </p>
-              <Link to="/registro" className="learn-more">
-                Empezar →
-              </Link>
             </div>
-            <div className="feature-card">
-              <Package className="feature-icon" />
-              <h3>Control de Stock</h3>
+            <div className="feature-card glass-panel card-hover-lift anim-fade-up">
+              <div className="feature-icon-wrapper blue-glow">
+                <Package className="feature-icon" />
+              </div>
+              <h3>Control de Inventario Avanzado</h3>
               <p>
-                Mantén el control de tus niveles de inventario y recibe alertas
-                automáticas de stock bajo.
+                Monitorea stock en tiempo real, clasifica por categorías personalizadas y recibe alertas visuales inmediatas cuando un producto esté por debajo de su umbral mínimo.
               </p>
-              <Link to="/registro" className="learn-more">
-                Empezar →
-              </Link>
             </div>
-            <div className="feature-card">
-              <TrendingUp className="feature-icon" />
-              <h3>Insights de Crecimiento</h3>
+            <div className="feature-card glass-panel card-hover-lift anim-fade-up">
+              <div className="feature-icon-wrapper indigo-glow">
+                <DollarSign className="feature-icon" />
+              </div>
+              <h3>Balance, Ingresos y Egresos</h3>
               <p>
-                Obtén información valiosa para optimizar tu inventario y
-                aumentar las ventas.
+                Lleva un control financiero de tu caja con el registro de egresos (compras, gastos operativos). Compara ingresos vs egresos para ver tu margen y rentabilidad neta real.
               </p>
-              <Link to="/registro" className="learn-more">
-                Empezar →
-              </Link>
             </div>
-            <div className="feature-card">
-              <Truck className="feature-icon" />
-              <h3>Gestión de Proveedores</h3>
+            <div className="feature-card glass-panel card-hover-lift anim-fade-up">
+              <div className="feature-icon-wrapper teal-glow">
+                <Users className="feature-icon" />
+              </div>
+              <h3>Control de Roles y Permisos</h3>
               <p>
-                Administra tus proveedores y automatiza órdenes de compra
-                eficientemente.
+                Define qué módulos puede ver tu personal. El sistema restringe accesos según el rol (Administrador vs Vendedor), protegiendo la información sensible de tu balance y configuración.
               </p>
-              <Link to="/registro" className="learn-more">
-                Empezar →
-              </Link>
             </div>
-            <div className="feature-card">
-              <HeartHandshake className="feature-icon" />
-              <h3>Relaciones con Clientes</h3>
+            <div className="feature-card glass-panel card-hover-lift anim-fade-up">
+              <div className="feature-icon-wrapper rose-glow">
+                <HeartHandshake className="feature-icon" />
+              </div>
+              <h3>Gestión de Clientes y Proveedores</h3>
               <p>
-                Construye relaciones más sólidas con funciones integradas de
-                CRM.
+                Integra un directorio completo de clientes (CRM) y proveedores. Asocia ventas a tus clientes recurrentes y registra tus compras o egresos a tus proveedores oficiales de stock.
               </p>
-              <Link to="/registro" className="learn-more">
-                Empezar →
-              </Link>
             </div>
           </div>
         </div>
@@ -149,34 +333,37 @@ function Landing() {
       {/* Benefits */}
       <section className="benefits">
         <div className="container">
-          <h2>¿Por qué elegir OrderEasy?</h2>
+          <div className="section-header text-center anim-fade-up">
+            <span className="section-tag">Ventajas Lumxis</span>
+            <h2>¿Por qué Lumxis es la elección correcta?</h2>
+          </div>
           <div className="benefits-grid">
-            <div className="benefit-item">
-              <h3>Fácil de Usar</h3>
+            <div className="benefit-item glass-panel card-hover-lift anim-fade-up">
+              <div className="benefit-badge"><Check className="benefit-check-icon" /></div>
+              <h3>Extremadamente Intuitivo</h3>
               <p>
-                Interfaz intuitiva que requiere mínima capacitación. Comienza en
-                minutos, no en días.
+                Cero curvas complejas de aprendizaje. Tus cajeros y vendedores pueden aprender a operar el POS y la caja registradora en menos de 10 minutos.
               </p>
             </div>
-            <div className="benefit-item">
-              <h3>Totalmente Gratis</h3>
+            <div className="benefit-item glass-panel card-hover-lift anim-fade-up">
+              <div className="benefit-badge"><Check className="benefit-check-icon" /></div>
+              <h3>Seguridad a Nivel de Datos</h3>
               <p>
-                Sin costos ocultos. Todas las funciones disponibles sin cargo
-                alguno.
+                Control estricto de roles. Toda acción crítica (como eliminar ventas o productos) cuenta con confirmaciones en tiempo real y registro de auditoría.
               </p>
             </div>
-            <div className="benefit-item">
-              <h3>Seguro</h3>
+            <div className="benefit-item glass-panel card-hover-lift anim-fade-up">
+              <div className="benefit-badge"><Check className="benefit-check-icon" /></div>
+              <h3>100% Personalizable</h3>
               <p>
-                Seguridad de nivel empresarial con datos encriptados y respaldos
-                regulares.
+                Ajusta las categorías, configura alertas de stock por producto y personaliza los métodos de pago según las necesidades de tu comercio.
               </p>
             </div>
-            <div className="benefit-item">
-              <h3>Escalable</h3>
+            <div className="benefit-item glass-panel card-hover-lift anim-fade-up">
+              <div className="benefit-badge"><Check className="benefit-check-icon" /></div>
+              <h3>Decisiones Basadas en Datos</h3>
               <p>
-                Desde pequeños negocios hasta empresas, nuestra solución crece
-                contigo.
+                Deja de adivinar tus ganancias. Visualiza estadísticas de ventas y compras anuales y mensuales de forma gráfica y consolidada al instante.
               </p>
             </div>
           </div>
@@ -187,21 +374,21 @@ function Landing() {
       <section className="stats">
         <div className="container">
           <div className="stats-grid">
-            <div className="stat-box">
-              <div className="stat-number">15,000+</div>
-              <div className="stat-label">Usuarios Activos</div>
+            <div className="stat-box anim-fade-up">
+              <div className="stat-number gradient-text">24/7</div>
+              <div className="stat-label">Asistencia por IA Activa</div>
             </div>
-            <div className="stat-box">
-              <div className="stat-number">2M+</div>
-              <div className="stat-label">Pedidos Procesados</div>
+            <div className="stat-box anim-fade-up">
+              <div className="stat-number gradient-text">10 Min</div>
+              <div className="stat-label">Configuración Inicial</div>
             </div>
-            <div className="stat-box">
-              <div className="stat-number">99.9%</div>
-              <div className="stat-label">Tiempo Activo</div>
+            <div className="stat-box anim-fade-up">
+              <div className="stat-number gradient-text">100%</div>
+              <div className="stat-label">Control Financiero de Caja</div>
             </div>
-            <div className="stat-box">
-              <div className="stat-number">50+</div>
-              <div className="stat-label">Países Atendidos</div>
+            <div className="stat-box anim-fade-up">
+              <div className="stat-number gradient-text">0%</div>
+              <div className="stat-label">Comisión por Ventas Realizadas</div>
             </div>
           </div>
         </div>
@@ -210,61 +397,53 @@ function Landing() {
       {/* Testimonials */}
       <section className="testimonials">
         <div className="container">
-          <h2>Lo que Dicen Nuestros Usuarios</h2>
+          <div className="section-header text-center anim-fade-up">
+            <span className="section-tag">Testimonios</span>
+            <h2>La opinión de comercios reales</h2>
+          </div>
           <div className="testimonials-grid">
-            <div className="testimonial-card">
+            <div className="testimonial-card glass-panel card-hover-lift anim-fade-up">
               <p>
-                "OrderEasy ha transformado la forma en que manejamos nuestro
-                inventario. El seguimiento en tiempo real y los análisis nos han
-                ayudado a optimizar nuestros niveles de stock y aumentar las
-                ganancias en un 25%."
+                \"El asistente de IA es una maravilla. Estoy en la calle y puedo preguntarle al asistente en el celular cuál fue el balance de ventas del día o qué productos tienen stock bajo y me responde al instante en segundos.\"
               </p>
               <div className="testimonial-author">
                 <img
-                  src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=48&h=48&q=80"
-                  alt="Usuario"
+                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=80&h=80&q=80"
+                  alt="Diana Valencia"
                 />
                 <div>
-                  <div className="author-name">Juan Pérez</div>
-                  <div className="author-title">CEO, TechRetail</div>
+                  <div className="author-name">Diana Valencia</div>
+                  <div className="author-title">Propietaria, MiniMarket La 70</div>
                 </div>
               </div>
             </div>
-            <div className="testimonial-card">
+            <div className="testimonial-card glass-panel card-hover-lift anim-fade-up">
               <p>
-                "Las funciones de gestión de ventas son increíbles. Hemos
-                reducido nuestro tiempo de procesamiento en un 50% y mejorado la
-                precisión significativamente. El soporte al cliente siempre está
-                ahí cuando lo necesitamos."
+                \"Controlar los turnos de caja era un dolor de cabeza diario. Con Lumxis, mis cajeros abren y cierran turnos fácilmente, y puedo ver si hay descuadres de efectivo inmediatamente desde el panel administrador.\"
               </p>
               <div className="testimonial-author">
                 <img
-                  src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=48&h=48&q=80"
-                  alt="Usuario"
+                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=80&h=80&q=80"
+                  alt="Andrés Restrepo"
                 />
                 <div>
-                  <div className="author-name">María González</div>
-                  <div className="author-title">
-                    Gerente de Operaciones, StyleStore
-                  </div>
+                  <div className="author-name">Andrés Restrepo</div>
+                  <div className="author-title">Gerente General, Distribuidora Oriente</div>
                 </div>
               </div>
             </div>
-            <div className="testimonial-card">
+            <div className="testimonial-card glass-panel card-hover-lift anim-fade-up">
               <p>
-                "Desde que implementamos OrderEasy, hemos visto una reducción
-                del 40% en agotamiento de stock y un aumento del 30% en la
-                rotación de inventario. Ha sido un cambio revolucionario para
-                nuestro negocio."
+                \"Implementamos Lumxis por el control de inventario, pero nos quedamos por todo lo demás. El balance financiero mensual y el control de accesos de vendedores nos da una tranquilidad inmensa.\"
               </p>
               <div className="testimonial-author">
                 <img
-                  src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=48&h=48&q=80"
-                  alt="Usuario"
+                  src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=80&h=80&q=80"
+                  alt="Valeria Ospina"
                 />
                 <div>
-                  <div className="author-name">Carlos Rodríguez</div>
-                  <div className="author-title">Fundador, GrowthMart</div>
+                  <div className="author-name">Valeria Ospina</div>
+                  <div className="author-title">Fundadora, Tendencias Tienda de Ropa</div>
                 </div>
               </div>
             </div>
@@ -273,81 +452,64 @@ function Landing() {
       </section>
 
       {/* CTA Section */}
-      <section className="cta">
-        <div className="container">
-          <h2>¿Listo para optimizar tu gestión de inventario?</h2>
-          <p>Únete a miles de negocios que confían en OrderEasy</p>
-          <div className="cta-buttons">
-            <Link to="/registro" className="btn-primary no-underline">
-              Comenzar Gratis
-            </Link>
-            <button className="btn-outline">Contactar Ventas</button>
+      <section className="cta anim-fade-up">
+        <div className="container relative">
+          <div className="cta-content glass-panel">
+            <h2>Toma el control absoluto de tu negocio hoy mismo</h2>
+            <p>Empieza gratis con Lumxis, configura tu inventario en minutos y experimenta la gestión impulsada por inteligencia artificial.</p>
+            <div className="cta-buttons">
+              <Link to="/registro" className="btn-primary no-underline btn-lg btn-glow">
+                Crear Mi Cuenta Gratis
+              </Link>
+              <Link to="/login" className="btn-outline btn-lg">
+                Acceder al Sistema
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="footer">
+      <footer className="footer anim-fade-up">
         <div className="container">
           <div className="footer-grid">
             <div className="footer-brand">
               <div className="logo">
-                <Package className="logo-icon" />
-                <span style={{ color: '#1565C0' }}>OrderEasy</span>
+                <Sparkles className="logo-icon" />
+                <span className="logo-text">Lumxis</span>
               </div>
               <p>
-                Empoderando negocios con soluciones inteligentes de gestión de
-                inventario gratuitas.
+                Revolucionando la gestión comercial con tecnología de vanguardia e inteligencia artificial accesible para todos los comercios.
               </p>
-              <div className="social-links">
-                <a href="#" className="social-link">
-                  Twitter
-                </a>
-                <a href="#" className="social-link">
-                  LinkedIn
-                </a>
-                <a href="#" className="social-link">
-                  Facebook
-                </a>
-              </div>
             </div>
             <div className="footer-links">
-              <h3>Producto</h3>
+              <h3>Sistema</h3>
               <ul>
                 <li>
-                  <a href="#">Características</a>
+                  <Link to="/login">Iniciar Sesión</Link>
                 </li>
                 <li>
-                  <a href="#">Precios</a>
+                  <Link to="/registro">Registro Gratuito</Link>
                 </li>
                 <li>
-                  <a href="#">Documentación</a>
-                </li>
-                <li>
-                  <a href="#">API</a>
-                </li>
-                <li>
-                  <a href="#">Integraciones</a>
+                  <a href="#demo-asistente">Demostración IA</a>
                 </li>
               </ul>
             </div>
             <div className="footer-links">
-              <h3>Empresa</h3>
+              <h3>Funciones</h3>
               <ul>
                 <li>
-                  <a href="#">Acerca de</a>
+                  <a href="#">Asistente Chatbot</a>
                 </li>
                 <li>
-                  <a href="#">Blog</a>
+                  <a href="#">Control de Caja POS</a>
                 </li>
                 <li>
-                  <a href="#">Carreras</a>
+                  <a href="#">Gestión de Stock</a>
                 </li>
                 <li>
-                  <a href="#">Prensa</a>
-                </li>
-                <li>
-                  <a href="#">Socios</a>
+                  <a href="#">Balance e Informes</a>
                 </li>
               </ul>
             </div>
@@ -358,43 +520,34 @@ function Landing() {
                   <a href="#">Centro de Ayuda</a>
                 </li>
                 <li>
-                  <a href="#">Contacto</a>
+                  <a href="#">Guías de Configuración</a>
                 </li>
                 <li>
-                  <a href="#">Estado</a>
-                </li>
-                <li>
-                  <a href="#">Capacitación</a>
-                </li>
-                <li>
-                  <a href="#">Comunidad</a>
+                  <a href="#">Contacto Técnico</a>
                 </li>
               </ul>
             </div>
             <div className="footer-links">
-              <h3>Legal</h3>
+              <h3>Seguridad</h3>
               <ul>
                 <li>
-                  <a href="#">Privacidad</a>
+                  <a href="#">Políticas de Privacidad</a>
                 </li>
                 <li>
-                  <a href="#">Términos</a>
+                  <a href="#">Términos del Servicio</a>
                 </li>
                 <li>
-                  <a href="#">Seguridad</a>
-                </li>
-                <li>
-                  <a href="#">Cumplimiento</a>
+                  <a href="#">Respaldo de Datos</a>
                 </li>
               </ul>
             </div>
           </div>
           <div className="footer-bottom">
-            <p>&copy; 2024 OrderEasy. Todos los derechos reservados.</p>
+            <p>&copy; {new Date().getFullYear()} Lumxis. Todos los derechos reservados.</p>
             <div className="footer-bottom-links">
-              <a href="#">Política de Privacidad</a>
-              <a href="#">Términos de Servicio</a>
-              <a href="#">Configuración de Cookies</a>
+              <a href="#">Seguridad del Servidor</a>
+              <a href="#">Términos y Condiciones</a>
+              <a href="#">Cookies</a>
             </div>
           </div>
         </div>

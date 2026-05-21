@@ -1,8 +1,11 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
 import { Toaster } from 'sonner';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
+import SeccionRoute from './components/SeccionRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import NotFound from './components/NotFound';
 
@@ -17,16 +20,19 @@ const Login = lazy(() => import('./components/vendedor/login/Login'));
 const Home = lazy(() => import('./components/inicio/landing'));
 const Inicio = lazy(() => import('./components/vendedor/dashboard/inicio/Inicio'));
 const Registro = lazy(() => import('./components/vendedor/login/Registro'));
-const RegistrarIngresoForm = lazy(() => import('./components/vendedor/dashboard/balance/vistas/RegistrarIngresoForm'));
 const RegistrarEgresoForm = lazy(() => import('./components/vendedor/dashboard/balance/vistas/RegistrarEgresoForm'));
 const DetalleVenta = lazy(() => import('./components/vendedor/dashboard/balance/vistas/DetalleVenta'));
 const DetalleEgreso = lazy(() => import('./components/vendedor/dashboard/balance/vistas/DetalleEgreso'));
 const DetalleProducto = lazy(() => import('./components/vendedor/dashboard/inventario/vistas/DetalleProducto'));
 const NuevoProducto = lazy(() => import('./components/vendedor/dashboard/inventario/vistas/NuevoProducto'));
+const EditarProducto = lazy(() => import('./components/vendedor/dashboard/inventario/vistas/EditarProducto'));
 const Categorias = lazy(() => import('./components/vendedor/dashboard/categorias/Categorias'));
 const Usuarios = lazy(() => import('./components/vendedor/dashboard/usuarios/Usuario'));
+const Roles = lazy(() => import('./components/vendedor/dashboard/roles/Roles'));
 const Configuracion = lazy(() => import('./components/vendedor/dashboard/configuracion/Configuracion'));
 const ChatPage = lazy(() => import('./components/chat/ChatPage'));
+const Caja = lazy(() => import('./components/vendedor/dashboard/caja/Caja'));
+const HistorialTurnos = lazy(() => import('./components/vendedor/dashboard/caja/HistorialTurnos'));
 
 const PageLoader = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
@@ -34,6 +40,11 @@ const PageLoader = () => (
     <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
   </div>
 );
+
+const IndexRedirect = () => {
+  const { user } = useAuth();
+  return <Navigate to={user?.rol === 'administrador' ? 'inicio' : 'caja'} replace />;
+};
 
 function App() {
   return (
@@ -56,32 +67,36 @@ function App() {
                   </ProtectedRoute>
                 }
               >
-                <Route index element={<Navigate to="inicio" replace />} />
-                <Route path="inicio" element={<Inicio />} />
+                <Route index element={<IndexRedirect />} />
 
-                <Route path="inventario" element={<Inventario />} />
-                <Route path="productos" element={<Productos />} />
-                <Route path="categorias" element={<Categorias />} />
+                {/* Rutas basadas en sección asignada (admin siempre pasa) */}
+                <Route path="inicio" element={<SeccionRoute seccion="inicio"><Inicio /></SeccionRoute>} />
+                <Route path="inventario" element={<SeccionRoute seccion="inventario"><Inventario /></SeccionRoute>} />
+                <Route path="productos" element={<SeccionRoute seccion="productos"><Productos /></SeccionRoute>} />
+                <Route path="categorias" element={<SeccionRoute seccion="categorias"><Categorias /></SeccionRoute>} />
+                <Route path="nuevo-producto" element={<SeccionRoute seccion="inventario"><NuevoProducto /></SeccionRoute>} />
+                <Route path="producto/:id/editar" element={<SeccionRoute seccion="inventario"><EditarProducto /></SeccionRoute>} />
+                <Route path="balance" element={<SeccionRoute seccion="balance"><Balance /></SeccionRoute>} />
+                <Route path="estadisticas" element={<SeccionRoute seccion="estadisticas"><Estadisticas /></SeccionRoute>} />
+                <Route path="nuevo-egreso" element={<SeccionRoute seccion="balance"><RegistrarEgresoForm /></SeccionRoute>} />
+                <Route path="venta/:id" element={<SeccionRoute seccion="balance"><DetalleVenta /></SeccionRoute>} />
+                <Route path="egreso/:id" element={<SeccionRoute seccion="balance"><DetalleEgreso /></SeccionRoute>} />
+                <Route path="proveedores" element={<SeccionRoute seccion="proveedores"><Proveedores /></SeccionRoute>} />
+
+                {/* Solo administrador del sistema */}
+                <Route path="configuracion" element={<AdminRoute><Configuracion /></AdminRoute>} />
+                <Route path="usuarios" element={<AdminRoute><Usuarios /></AdminRoute>} />
+                <Route path="roles" element={<AdminRoute><Roles /></AdminRoute>} />
+                <Route path="turnos" element={<AdminRoute><HistorialTurnos /></AdminRoute>} />
+
+                {/* Accesibles por todos los roles autenticados */}
                 <Route path="producto/:id" element={<DetalleProducto />} />
-                <Route path="nuevo-producto" element={<NuevoProducto />} />
-
-                <Route path="balance" element={<Balance />} />
-                <Route path="estadisticas" element={<Estadisticas />} />
-                <Route path="nueva-venta" element={<RegistrarIngresoForm />} />
-                <Route path="nuevo-egreso" element={<RegistrarEgresoForm />} />
-                <Route path="venta/:id" element={<DetalleVenta />} />
-                <Route path="egreso/:id" element={<DetalleEgreso />} />
-
+                <Route path="caja" element={<Caja />} />
                 <Route path="clientes" element={<Clientes />} />
-                <Route path="proveedores" element={<Proveedores />} />
-
                 <Route path="asistente" element={<ChatPage />} />
-
-                <Route path="usuarios" element={<Usuarios />} />
-                <Route path="configuracion" element={<Configuracion />} />
               </Route>
 
-              <Route path="/admin/*" element={<Navigate to="/dashboard/inicio" replace />} />
+              <Route path="/admin/*" element={<Navigate to="/dashboard" replace />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

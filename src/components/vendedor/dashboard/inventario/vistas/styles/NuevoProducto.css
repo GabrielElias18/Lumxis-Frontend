@@ -86,6 +86,12 @@
   margin-bottom: 18px;
 }
 
+.campo-opcional {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--neutral-400, #94A3B8);
+}
+
 .form-group-minimal label {
   font-size: 0.85rem;
   font-weight: 700;

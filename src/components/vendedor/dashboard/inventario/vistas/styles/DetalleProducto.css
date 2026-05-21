@@ -252,6 +252,32 @@
 
 .stat-card-minimal .stat-val small { font-size: 0.8rem; color: var(--neutral-400); }
 
+.barcode-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--neutral-50, #F8FAFC);
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: var(--radius-sm, 6px);
+  color: var(--neutral-500, #64748B);
+}
+
+.barcode-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--neutral-500, #64748B);
+}
+
+.barcode-value {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--neutral-900, #0F172A);
+  font-family: monospace;
+  margin-left: auto;
+  letter-spacing: 0.05em;
+}
+
 .profit-analysis-minimal {
   background: #fafafa;
   border: 1px solid var(--neutral-200);

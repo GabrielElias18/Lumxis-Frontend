@@ -11,6 +11,7 @@
   margin-left: 155px;
   height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
   box-sizing: border-box;
   background-color: var(--neutral-100, #F0F4FA);
 }

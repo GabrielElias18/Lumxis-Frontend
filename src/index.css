@@ -82,6 +82,7 @@ button, input, optgroup, select, textarea {
   font-size: 100%;
   line-height: 1.15;
   margin: 0;
+  box-sizing: border-box;
 }
 
 button, input { overflow: visible; }
@@ -130,5 +131,7 @@ details { display: block; }
 summary { display: list-item; }
 template { display: none; }
 [hidden] { display: none; }
+
+*, *::before, *::after { box-sizing: border-box; }
 
 div { padding: 0; }

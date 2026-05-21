@@ -118,6 +118,8 @@ const Productos = () => {
               <th>Nombre</th>
               <th>Descripción</th>
               <th>Categoría</th>
+              <th>Cód. Barras</th>
+              <th>IVA</th>
               <th>Stock</th>
               <th>Compra</th>
               <th>Venta</th>
@@ -130,13 +132,15 @@ const Productos = () => {
                 <td className="productos-td-nombre">{p.nombre}</td>
                 <td>{p.descripcion}</td>
                 <td>{p.categoriaNombre}</td>
+                <td className="productos-td-barcode">{p.codigoBarras || <span className="productos-td-empty">—</span>}</td>
+                <td>{p.tasaIva ?? 0}%</td>
                 <td>{p.cantidadDisponible}</td>
                 <td>${Number(p.precioCompra).toLocaleString('es-CO')}</td>
                 <td>${Number(p.precioVenta).toLocaleString('es-CO')}</td>
               </tr>
             )) : (
               <tr>
-                <td colSpan="7" className="productos-empty">
+                <td colSpan="9" className="productos-empty">
                   <ShoppingCart size={28} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
                   <p>No se encontraron productos</p>
                 </td>

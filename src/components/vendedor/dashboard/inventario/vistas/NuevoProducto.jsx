@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Package, ImageIcon, Save, X, DollarSign, Layers, Info } from "lucide-react";
+import { ArrowLeft, Package, ImageIcon, Save, X, DollarSign, Layers, Info, Barcode } from "lucide-react";
 import { toast } from "sonner";
 import { createProduct } from "../../../../../services/productServices";
 import { getCategoriesByUser } from "../../../../../services/categoryServices";
@@ -21,6 +21,8 @@ function NuevoProducto() {
   const [imagenes, setImagenes] = useState([]);
   const [preview, setPreview] = useState([]);
   const [categoriaId, setCategoriaId] = useState("");
+  const [codigoBarras, setCodigoBarras] = useState("");
+  const [tasaIva, setTasaIva] = useState(0);
   const [categorias, setCategorias] = useState([]);
   const [cargando, setCargando] = useState(false);
 
@@ -55,6 +57,8 @@ function NuevoProducto() {
       formData.append("precioVenta", precioVenta);
       formData.append("categoriaid", categoriaId);
       if (cat) formData.append("categoriaNombre", cat.nombre);
+      if (codigoBarras.trim()) formData.append("codigoBarras", codigoBarras.trim());
+      formData.append("tasaIva", tasaIva);
       imagenes.forEach((img) => formData.append("imagenes", img));
 
       await createProduct(formData);
@@ -95,6 +99,19 @@ function NuevoProducto() {
                 <label>Descripción</label>
                 <textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} required placeholder="Especificaciones, material, etc." />
               </div>
+              <div className="form-group-minimal">
+                <label>
+                  <Barcode size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '0.3rem' }} />
+                  Código de Barras
+                  <span className="campo-opcional"> (opcional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={codigoBarras}
+                  onChange={(e) => setCodigoBarras(e.target.value)}
+                  placeholder="Ej: 7702001234567"
+                />
+              </div>
               <div className="form-row-minimal">
                 <div className="form-group-minimal">
                   <label>Categoría</label>
@@ -134,6 +151,14 @@ function NuevoProducto() {
                   Margen: <strong>{(((precioVenta - precioCompra) / precioCompra) * 100).toFixed(1)}%</strong>
                 </div>
               )}
+              <div className="form-group-minimal">
+                <label>Tasa de IVA</label>
+                <select value={tasaIva} onChange={(e) => setTasaIva(Number(e.target.value))}>
+                  <option value={0}>0% — Exento</option>
+                  <option value={5}>5%</option>
+                  <option value={19}>19%</option>
+                </select>
+              </div>
             </div>
 
             <div className="form-card-minimal">

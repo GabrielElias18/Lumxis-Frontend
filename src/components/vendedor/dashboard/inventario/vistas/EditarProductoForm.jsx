@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { X, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { updateProduct } from "../../../../../services/productServices";
 import { getCategoriesByUser } from "../../../../../services/categoryServices";
+import './styles/CrearProductoForm.css';
 import './styles/EditarProductoForm.css';
 
 const formatCOP = (val) =>
@@ -10,7 +11,7 @@ const formatCOP = (val) =>
     ? new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(val)
     : null;
 
-function EditarProductoForm({ producto, onClose, onUpdate, isInline = false }) {
+function EditarProductoForm({ producto, onClose, onUpdate }) {
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [cantidadDisponible, setCantidadDisponible] = useState(0);
@@ -88,120 +89,152 @@ function EditarProductoForm({ producto, onClose, onUpdate, isInline = false }) {
     setPreview(files.map((f) => URL.createObjectURL(f)));
   };
 
-  return (
-    <div className={isInline ? "" : "overlay"} onClick={isInline ? null : onClose}>
-      <div className={isInline ? "inline-form-container" : "popup"} onClick={(e) => e.stopPropagation()}>
+  const margen = precioCompra > 0 && precioVenta > 0
+    ? (((precioVenta - precioCompra) / precioCompra) * 100).toFixed(1)
+    : null;
 
-        <div className="modal-header">
-          <div className="modal-header-left">
-            <Pencil size={15} className="modal-header-icon" />
-            <h2>{isInline ? "Modificando" : "Editar Producto"}</h2>
+  return (
+    <div className="popup editar-card">
+
+        <div className="popup-header">
+          <div className="popup-header-left">
+            <Pencil size={15} className="popup-header-icon" />
+            <h2>Editar Producto</h2>
           </div>
-          {!isInline && (
-            <button type="button" className="cerrar" onClick={onClose} aria-label="Cerrar">
-              <X size={16} />
-            </button>
-          )}
         </div>
 
-        <form onSubmit={handleSubmit} encType="multipart/form-data" className="edit-form">
-          <div className="form-content">
+        <form onSubmit={handleSubmit} encType="multipart/form-data" className="popup-body">
 
-            {/* Left column */}
-            <div className="form-left">
-              <p className="form-section-title">Información básica</p>
+          <p className="form-section-title">Información básica</p>
 
-              <div className="form-group">
-                <label>Nombre <span className="required">*</span></label>
-                <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} required placeholder="Nombre del producto" />
-              </div>
+          <div className="form-group">
+            <label htmlFor="editNombre">Nombre <span className="required">*</span></label>
+            <input
+              type="text"
+              id="editNombre"
+              placeholder="Ej: Arroz Diana 500g"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              required
+            />
+          </div>
 
-              <div className="form-group">
-                <label>Descripción <span className="required">*</span></label>
-                <textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} required placeholder="Descripción del producto" />
-              </div>
+          <div className="form-group">
+            <label htmlFor="editDescripcion">Descripción <span className="required">*</span></label>
+            <textarea
+              id="editDescripcion"
+              placeholder="Describe el producto brevemente"
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              required
+            />
+          </div>
 
-              <div className="form-group">
-                <label>Categoría <span className="required">*</span></label>
-                <select value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)} required>
-                  <option value="">Seleccionar categoría</option>
-                  {categorias.map((cat) => (
-                    <option key={cat.categoriaid} value={cat.categoriaid}>{cat.nombre}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Imágenes</label>
-                <input type="file" multiple accept="image/*" onChange={handleImageChange} />
-                <span className="field-helper">Sube nuevas imágenes para reemplazar las actuales.</span>
-              </div>
-
-              {preview.length > 0 && (
-                <div className="preview-container">
-                  {preview.map((img, i) => (
-                    <img key={i} src={img} alt="Vista previa" className="preview-image" />
-                  ))}
-                </div>
-              )}
+          <div className="form-row-2">
+            <div className="form-group">
+              <label htmlFor="editCategoria">Categoría <span className="required">*</span></label>
+              <select
+                id="editCategoria"
+                value={categoriaId}
+                onChange={(e) => setCategoriaId(e.target.value)}
+                required
+              >
+                <option value="">Seleccionar...</option>
+                {categorias.map((cat) => (
+                  <option key={cat.categoriaid} value={cat.categoriaid}>{cat.nombre}</option>
+                ))}
+              </select>
             </div>
 
-            {/* Right column */}
-            <div className="form-right">
-              <p className="form-section-title">Stock</p>
-
-              <div className="form-group">
-                <label>Cantidad disponible <span className="required">*</span></label>
-                <input type="number" value={cantidadDisponible} min="0" onChange={(e) => setCantidadDisponible(e.target.value)} required />
-              </div>
-
-              <p className="form-section-title">Precios</p>
-
-              <div className="form-group">
-                <label>Precio de compra <span className="required">*</span></label>
-                <input
-                  type="number"
-                  value={precioCompra}
-                  min="0"
-                  onChange={(e) => setPrecioCompra(parseInt(e.target.value) || 0)}
-                  required
-                />
-                {formatCOP(precioCompra) && <span className="field-preview">{formatCOP(precioCompra)}</span>}
-              </div>
-
-              <div className="form-group">
-                <label>Precio de venta <span className="required">*</span></label>
-                <input
-                  type="number"
-                  value={precioVenta}
-                  min="0"
-                  onChange={(e) => setPrecioVenta(parseInt(e.target.value) || 0)}
-                  required
-                />
-                {formatCOP(precioVenta) && <span className="field-preview">{formatCOP(precioVenta)}</span>}
-              </div>
-
-              {precioCompra > 0 && precioVenta > 0 && (
-                <div className="margen-card">
-                  <span className="margen-label">Margen</span>
-                  <span className="margen-valor">
-                    {(((precioVenta - precioCompra) / precioCompra) * 100).toFixed(1)}%
-                  </span>
-                </div>
-              )}
+            <div className="form-group">
+              <label htmlFor="editCantidad">Stock disponible <span className="required">*</span></label>
+              <input
+                type="number"
+                id="editCantidad"
+                min="0"
+                placeholder="0"
+                value={cantidadDisponible}
+                onChange={(e) => setCantidadDisponible(e.target.value)}
+                required
+              />
             </div>
           </div>
 
-          <div className="button-group">
-            <button type="button" className="atras-btn" onClick={onClose} disabled={cargando}>
+          <p className="form-section-title">Precios</p>
+
+          <div className="form-row-2">
+            <div className="form-group">
+              <label htmlFor="editPrecioCompra">Precio de compra <span className="required">*</span></label>
+              <input
+                type="number"
+                id="editPrecioCompra"
+                placeholder="0"
+                min="0"
+                value={precioCompra}
+                onChange={(e) => setPrecioCompra(parseInt(e.target.value) || 0)}
+                required
+              />
+              {formatCOP(precioCompra) && <span className="field-preview">{formatCOP(precioCompra)}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="editPrecioVenta">Precio de venta <span className="required">*</span></label>
+              <input
+                type="number"
+                id="editPrecioVenta"
+                placeholder="0"
+                min="0"
+                value={precioVenta}
+                onChange={(e) => setPrecioVenta(parseInt(e.target.value) || 0)}
+                required
+              />
+              {formatCOP(precioVenta) && <span className="field-preview">{formatCOP(precioVenta)}</span>}
+            </div>
+          </div>
+
+          {margen !== null && (
+            <div className="editar-margen-card">
+              <span className="editar-margen-label">Margen estimado</span>
+              <span className="editar-margen-valor">{margen}%</span>
+            </div>
+          )}
+
+          <p className="form-section-title">Imágenes</p>
+
+          <div className="form-group">
+            <label htmlFor="editImagenes">Fotos del producto</label>
+            <input
+              type="file"
+              id="editImagenes"
+              multiple
+              accept="image/*"
+              onChange={handleImageChange}
+            />
+            <span className="field-helper">Sube nuevas imágenes para reemplazar las actuales.</span>
+          </div>
+
+          {preview.length > 0 && (
+            <div className="preview-container">
+              {preview.map((img, i) => (
+                <img
+                  key={i}
+                  src={img.startsWith('blob:') ? img : img.startsWith('http') ? img : `http://localhost:3000/uploads/${img}`}
+                  alt="Vista previa"
+                  className="preview-image"
+                />
+              ))}
+            </div>
+          )}
+
+          <div className="form-buttons">
+            <button type="button" onClick={onClose} disabled={cargando}>
               Cancelar
             </button>
-            <button type="submit" className="guardar-btn" disabled={cargando}>
+            <button type="submit" disabled={cargando}>
               {cargando ? <><span className="btn-spinner" />Guardando...</> : 'Guardar cambios'}
             </button>
           </div>
         </form>
-      </div>
     </div>
   );
 }

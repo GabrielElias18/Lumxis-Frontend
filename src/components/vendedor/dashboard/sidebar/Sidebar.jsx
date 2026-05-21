@@ -13,7 +13,8 @@ import {
   Tag,
   Settings,
   Bot,
-  X
+  CreditCard,
+  X,
 } from 'lucide-react';
 
 import { toast } from 'sonner';
@@ -21,11 +22,66 @@ import { useAuth } from '../../../../context/AuthContext';
 import './styles/Sidebar.css';
 import logo from '../../login/LoginAssets/logo.png';
 
+const MENU = [
+  {
+    section: 'Principal',
+    items: [
+      { to: 'inicio', label: 'Inicio', icon: LayoutDashboard, seccion: 'inicio' },
+      { to: 'inventario', label: 'Inventario', icon: Package, seccion: 'inventario' },
+      { to: 'productos', label: 'Productos', icon: ShoppingCart, seccion: 'productos' },
+      { to: 'categorias', label: 'Categorías', icon: Tag, seccion: 'categorias' },
+    ],
+  },
+  {
+    section: 'Ventas',
+    items: [
+      { to: 'caja', label: 'Caja', icon: CreditCard, seccion: 'caja' },
+    ],
+  },
+  {
+    section: 'Finanzas',
+    items: [
+      { to: 'balance', label: 'Balance', icon: DollarSign, seccion: 'balance' },
+      { to: 'estadisticas', label: 'Estadísticas', icon: LineChart, seccion: 'estadisticas' },
+    ],
+  },
+  {
+    section: 'Contactos',
+    items: [
+      { to: 'clientes', label: 'Clientes', icon: Users, seccion: 'clientes' },
+      { to: 'proveedores', label: 'Proveedores', icon: Truck, seccion: 'proveedores' },
+    ],
+  },
+  {
+    section: 'Asistente',
+    items: [
+      { to: 'asistente', label: 'Asistente IA', icon: Bot, seccion: 'asistente' },
+    ],
+  },
+  {
+    section: 'Gestión',
+    adminOnly: true,
+    items: [
+      { to: 'configuracion', label: 'Configuración', icon: Settings, seccion: null },
+    ],
+  },
+];
+
 function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+
+  const esAdmin = user?.rol === 'administrador';
+  const secciones = user?.secciones || [];
+
+  const puedeVer = (item, groupAdminOnly) => {
+    if (esAdmin) return true;
+    if (groupAdminOnly) return false;
+    if (item.seccion === null) return false;
+    return secciones.includes(item.seccion);
+  };
 
   const handleLogout = () => {
     toast('¿Cerrar sesión?', {
@@ -51,124 +107,34 @@ function Sidebar() {
 
       <div className={`sidebar ${isOpen ? 'open' : ''}`}>
         <div className="logo-container">
-          <Link to="/dashboard/inicio" onClick={() => setIsOpen(false)}>
+          <Link to="/dashboard" onClick={() => setIsOpen(false)}>
             <img src={logo} alt="Logo" className="custom-logo" />
           </Link>
         </div>
 
         <div className="menu-container">
           <nav className="menu-items">
-
-            {/* PRINCIPAL */}
-            <span className="menu-section-title">Principal</span>
-
-            <Link
-              to="inicio"
-              className={`menu-item ${isActive('inicio') ? 'active' : ''}`}
-              onClick={() => setIsOpen(false)}
-            >
-              <LayoutDashboard className="menu-icon" />
-              <span>Inicio</span>
-            </Link>
-
-            <Link
-              to="inventario"
-              className={`menu-item ${isActive('inventario') ? 'active' : ''}`}
-              onClick={() => setIsOpen(false)}
-            >
-              <Package className="menu-icon" />
-              <span>Inventario</span>
-            </Link>
-
-            <Link
-              to="productos"
-              className={`menu-item ${isActive('productos') ? 'active' : ''}`}
-              onClick={() => setIsOpen(false)}
-            >
-              <ShoppingCart className="menu-icon" />
-              <span>Productos</span>
-            </Link>
-
-            <Link
-              to="categorias"
-              className={`menu-item ${isActive('categorias') ? 'active' : ''}`}
-              onClick={() => setIsOpen(false)}
-            >
-              <Tag className="menu-icon" />
-              <span>Categorías</span>
-            </Link>
-
-
-            {/* FINANZAS */}
-            <div className="menu-divider" />
-            <span className="menu-section-title">Finanzas</span>
-
-            <Link
-              to="balance"
-              className={`menu-item ${isActive('balance') ? 'active' : ''}`}
-              onClick={() => setIsOpen(false)}
-            >
-              <DollarSign className="menu-icon" />
-              <span>Balance</span>
-            </Link>
-
-            <Link
-              to="estadisticas"
-              className={`menu-item ${isActive('estadisticas') ? 'active' : ''}`}
-              onClick={() => setIsOpen(false)}
-            >
-              <LineChart className="menu-icon" />
-              <span>Estadísticas</span>
-            </Link>
-
-            {/* CONTACTOS */}
-            <div className="menu-divider" />
-            <span className="menu-section-title">Contactos</span>
-
-            <Link
-              to="clientes"
-              className={`menu-item ${isActive('clientes') ? 'active' : ''}`}
-              onClick={() => setIsOpen(false)}
-            >
-              <Users className="menu-icon" />
-              <span>Clientes</span>
-            </Link>
-
-            <Link
-              to="proveedores"
-              className={`menu-item ${isActive('proveedores') ? 'active' : ''}`}
-              onClick={() => setIsOpen(false)}
-            >
-              <Truck className="menu-icon" />
-              <span>Proveedores</span>
-            </Link>
-
-            {/* ASISTENTE */}
-            <div className="menu-divider" />
-            <span className="menu-section-title">Asistente</span>
-
-            <Link
-              to="asistente"
-              className={`menu-item ${isActive('asistente') ? 'active' : ''}`}
-              onClick={() => setIsOpen(false)}
-            >
-              <Bot className="menu-icon" />
-              <span>Asistente IA</span>
-            </Link>
-
-            {/* GESTIÓN */}
-            <div className="menu-divider" />
-            <span className="menu-section-title">Gestión</span>
-
-            <Link
-              to="configuracion"
-              className={`menu-item ${isActive('configuracion') ? 'active' : ''}`}
-              onClick={() => setIsOpen(false)}
-            >
-              <Settings className="menu-icon" />
-              <span>Configuración</span>
-            </Link>
-
+            {MENU.map(({ section, adminOnly, items }, gi) => {
+              const visibles = items.filter((item) => puedeVer(item, adminOnly));
+              if (visibles.length === 0) return null;
+              return (
+                <div key={gi}>
+                  {gi > 0 && <div className="menu-divider" />}
+                  <span className="menu-section-title">{section}</span>
+                  {visibles.map(({ to, label, icon: Icon }) => (
+                    <Link
+                      key={to}
+                      to={to}
+                      className={`menu-item ${isActive(to) ? 'active' : ''}`}
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <Icon className="menu-icon" />
+                      <span>{label}</span>
+                    </Link>
+                  ))}
+                </div>
+              );
+            })}
           </nav>
         </div>
 
